@@ -1,0 +1,36 @@
+---
+description: Standard layout width and modal conventions for YORA Wealth frontend
+globs: frontend/src/**/*.{jsx,js,css}
+alwaysApply: false
+---
+
+# Layout Width
+
+Project standard **modal** width: **`max-w-4xl`** (56rem) via `.app-modal` / `.app-width`.
+
+## Use `max-w-4xl` for
+
+- Modals only — `components/common/Modal.jsx` (`.app-modal` includes it)
+- Any new dialog or overlay panel
+
+## Do NOT apply to
+
+- **Main page content** — stays full width within `.shell-content` (`max-w-7xl`)
+- **Page cards** (`.shell-page-card`) — no max-width; fill the content area
+
+## Exceptions
+
+- **Login form** — compact at `max-w-md`
+- **Toasts** — `max-w-sm`
+
+## New modals
+
+Reuse `Modal` from `components/common/Modal.jsx`:
+
+```jsx
+<Modal title="Title" onClose={close} ariaLabelledBy="modal-title-id">
+  {/* content */}
+</Modal>
+```
+
+Do not introduce alternate max-widths for modals unless the user explicitly requests it.

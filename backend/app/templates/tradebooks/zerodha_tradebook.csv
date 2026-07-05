@@ -1,0 +1,2 @@
+symbol,isin,trade_date,exchange,segment,series,trade_type,auction,quantity,price,trade_id,order_id,order_execution_time
+BRITANNIA,INE216A01030,2021-01-14,NSE,EQ,EQ,buy,false,14.000000,3669.000000,891472,1000000003401272,2021-01-14T09:49:28

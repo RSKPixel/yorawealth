@@ -1,0 +1,25 @@
+---
+description: Settings section is design-complete — do not change layout or styling without user approval
+globs: frontend/src/components/settings/**,frontend/src/context/SettingsContext.jsx,frontend/src/components/common/Modal.jsx
+alwaysApply: false
+---
+
+# Settings — Design Locked
+
+The settings section design is **complete**. Do not change layout, styling, structure, or UX unless the user explicitly asks.
+
+## Do not change without confirmation
+
+- `components/settings/*` (SettingsModal, ProfileTab, PasswordTab, settingsTabs)
+- Settings-related CSS in `index.css` (`.settings-*`, `.settings-shell-card`)
+- `context/SettingsContext.jsx`
+- `components/common/Modal.jsx` when used for settings
+
+## Allowed without asking
+
+- Bug fixes that restore intended behavior (broken upload, API errors, validation)
+- New fields or tabs **only when the user explicitly requests them**
+
+## Before any settings design tweak
+
+Ask the user or wait for explicit approval — includes spacing, colors, opacity, header heights, tab layout, form layout, and modal width.

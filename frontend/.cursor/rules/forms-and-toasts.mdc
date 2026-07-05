@@ -1,0 +1,45 @@
+---
+description: Form validation and toast messaging conventions for YORA Wealth frontend
+globs: frontend/src/**/*.{jsx,js}
+alwaysApply: false
+---
+
+# Forms & Toasts
+
+All form feedback (validation errors, API errors, success/info) uses bottom-right toasts — never inline messages inside the form.
+
+## Toast defaults
+
+- Max visible: **3** (`TOAST_MAX_VISIBLE`) — oldest slides out when a 4th arrives
+- Duration: **3 seconds** (`TOAST_DEFAULT_DURATION_MS` in `context/ToastContext.jsx`)
+- Dismiss: click × or auto-hide after 3s
+- Animation: slide in right→left (`ease-in`), slide out left→right (`ease-out`)
+- Usage: `const { showToast } = useToast()` then `showToast(message)` or `showToast(message, { type: 'success' })`
+
+## Form structure
+
+- Use `FormCard` (has `noValidate` — disables browser validation bubbles)
+- Do **not** use HTML `required`; use `aria-required="true"` and custom validators
+- Do **not** render error `<div>`s inside `FormBody`
+
+## Validation pattern
+
+1. Add validator in `utils/formValidation.js` (e.g. `validateLoginForm`)
+2. In submit handler, validate first and return early:
+
+```jsx
+const validationMessage = validateMyForm(values)
+if (validationMessage) {
+  showToast(validationMessage)
+  return
+}
+```
+
+3. On API failure, `showToast(err.response?.data?.detail || 'Fallback message')`
+
+## New forms checklist
+
+- [ ] Validator in `utils/formValidation.js`
+- [ ] `showToast` for validation + API errors
+- [ ] No inline form messages
+- [ ] `FormCard` + shared form components from `components/form/`
