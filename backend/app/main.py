@@ -20,7 +20,6 @@ app = FastAPI(title=settings.app_name, debug=settings.debug)
 
 upload_path = Path(settings.upload_dir)
 upload_path.mkdir(parents=True, exist_ok=True)
-(upload_path / "profile").mkdir(parents=True, exist_ok=True)
 (upload_path / "cams").mkdir(parents=True, exist_ok=True)
 (upload_path / "tradebooks").mkdir(parents=True, exist_ok=True)
 (upload_path / "ppf").mkdir(parents=True, exist_ok=True)

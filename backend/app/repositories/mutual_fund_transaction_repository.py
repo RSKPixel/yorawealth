@@ -6,6 +6,37 @@ from sqlalchemy.orm import Session
 
 from app.models.mutual_fund_transaction import MutualFundTransaction
 
+QUANTITY_QUANTIZER = Decimal("0.001")
+TRADE_VALUE_QUANTIZER = Decimal("0.01")
+
+
+def _normalize_quantity(value) -> Decimal:
+    return Decimal(str(value)).quantize(QUANTITY_QUANTIZER)
+
+
+def _normalize_trade_value(value) -> Decimal:
+    return Decimal(str(value)).quantize(TRADE_VALUE_QUANTIZER)
+
+
+def _transaction_key(
+    client_pan: str,
+    folio: str,
+    isin: str,
+    transaction_date: date,
+    trade_type: str,
+    quantity: Decimal,
+    trade_value: Decimal,
+) -> tuple[str, str, str, date, str, Decimal, Decimal]:
+    return (
+        client_pan.upper(),
+        folio,
+        isin,
+        transaction_date,
+        trade_type,
+        _normalize_quantity(quantity),
+        _normalize_trade_value(trade_value),
+    )
+
 
 class MutualFundTransactionRepository:
     def __init__(self, db: Session) -> None:
@@ -35,6 +66,24 @@ class MutualFundTransactionRepository:
             .first()
         )
 
+    def _apply_row(
+        self,
+        record: MutualFundTransaction,
+        row: dict,
+        source_filename: str,
+        quantity: Decimal,
+        trade_value: Decimal,
+    ) -> None:
+        record.fund_name = row["fund_name"]
+        record.amc = row["amc"]
+        record.assetclass = row.get("assetclass")
+        record.symbol = row.get("symbol")
+        record.name = row.get("name")
+        record.nav = Decimal(str(row["nav"]))
+        record.quantity = quantity
+        record.trade_value = trade_value
+        record.source_filename = source_filename
+
     def upsert_many(
         self,
         client_pan: str,
@@ -45,11 +94,30 @@ class MutualFundTransactionRepository:
         saved: list[MutualFundTransaction] = []
         created_count = 0
         updated_count = 0
+        records_by_key: dict[
+            tuple[str, str, str, date, str, Decimal, Decimal],
+            MutualFundTransaction,
+        ] = {}
 
         for row in rows:
             transaction_date = date.fromisoformat(row["transaction_date"])
-            quantity = Decimal(str(row["quantity"]))
-            trade_value = Decimal(str(row["trade_value"]))
+            quantity = _normalize_quantity(row["quantity"])
+            trade_value = _normalize_trade_value(row["trade_value"])
+            key = _transaction_key(
+                client_pan,
+                row["folio"],
+                row["isin"],
+                transaction_date,
+                row["trade_type"],
+                quantity,
+                trade_value,
+            )
+
+            pending = records_by_key.get(key)
+            if pending is not None:
+                self._apply_row(pending, row, source_filename, quantity, trade_value)
+                updated_count += 1
+                continue
 
             existing = self.find_existing(
                 client_pan=client_pan,
@@ -62,13 +130,8 @@ class MutualFundTransactionRepository:
             )
 
             if existing is not None:
-                existing.fund_name = row["fund_name"]
-                existing.amc = row["amc"]
-                existing.assetclass = row.get("assetclass")
-                existing.symbol = row.get("symbol")
-                existing.name = row.get("name")
-                existing.nav = Decimal(str(row["nav"]))
-                existing.source_filename = source_filename
+                self._apply_row(existing, row, source_filename, quantity, trade_value)
+                records_by_key[key] = existing
                 saved.append(existing)
                 updated_count += 1
                 continue
@@ -90,6 +153,7 @@ class MutualFundTransactionRepository:
                 source_filename=source_filename,
             )
             self.db.add(record)
+            records_by_key[key] = record
             saved.append(record)
             created_count += 1
 

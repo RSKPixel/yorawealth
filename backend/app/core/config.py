@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     cookie_samesite: str = "lax"
 
     upload_dir: str = "uploads"
-    profile_photo_max_bytes: int = 2 * 1024 * 1024
+    profile_photo_max_bytes: int = 1 * 1024 * 1024
     cams_pdf_max_bytes: int = 10 * 1024 * 1024
     bank_statement_max_bytes: int = 10 * 1024 * 1024
 

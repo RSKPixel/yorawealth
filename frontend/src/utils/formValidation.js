@@ -3,7 +3,7 @@ const EMAIL_PATTERN = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 const PHONE_PATTERN = /^[0-9+\-\s()]{7,20}$/
 const ZERODHA_CLIENT_ID_PATTERN = /^[A-Z]{2}\d{4}$/
 const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-const MAX_PHOTO_BYTES = 2 * 1024 * 1024
+const MAX_PHOTO_BYTES = 1 * 1024 * 1024
 const ALLOWED_CAMS_PDF_TYPE = 'application/pdf'
 const MAX_CAMS_PDF_BYTES = 10 * 1024 * 1024
 const ALLOWED_TRADEBOOK_TYPES = [
@@ -120,7 +120,7 @@ export function validateProfilePhotoFile(file) {
   }
 
   if (file.size > MAX_PHOTO_BYTES) {
-    return 'Image must be 2 MB or smaller.'
+    return 'Image must be 1 MB or smaller.'
   }
 
   return null
