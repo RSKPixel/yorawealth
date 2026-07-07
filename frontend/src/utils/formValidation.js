@@ -17,6 +17,8 @@ const ALLOWED_PPF_STATEMENT_TYPES = [
   'application/octet-stream',
 ]
 const MAX_PPF_STATEMENT_BYTES = 10 * 1024 * 1024
+const ALLOWED_BANK_STATEMENT_TYPES = ['text/csv', 'application/csv', 'application/octet-stream']
+const MAX_BANK_STATEMENT_BYTES = 10 * 1024 * 1024
 
 export function validateCamsPdfFile(file) {
   if (!file) {
@@ -82,6 +84,26 @@ export function validatePpfStatementFile(file) {
   }
 
   if (file.size > MAX_PPF_STATEMENT_BYTES) {
+    return 'File must be 10 MB or smaller.'
+  }
+
+  return null
+}
+
+export function validateBankStatementFile(file) {
+  if (!file) {
+    return 'Please select a bank statement file.'
+  }
+
+  const extension = file.name.split('.').pop()?.toLowerCase()
+  const typeAllowed =
+    ALLOWED_BANK_STATEMENT_TYPES.includes(file.type) || extension === 'csv'
+
+  if (!typeAllowed) {
+    return 'Please select a CSV bank statement with date, desc, ref, debit, credit columns.'
+  }
+
+  if (file.size > MAX_BANK_STATEMENT_BYTES) {
     return 'File must be 10 MB or smaller.'
   }
 

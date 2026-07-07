@@ -8,6 +8,7 @@ export const PAGE_TITLES = {
   '/stocks': 'Stocks',
   '/capital-gains': 'Capital Gains',
   '/ppf': 'Public Provident Fund',
+  '/transactions/bank': 'Bank Transactions',
   '/calculators': 'Calculators',
   '/market-data': 'Market Data',
   '/login': 'Login',

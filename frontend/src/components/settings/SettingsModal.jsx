@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Modal from '../common/Modal'
 import BootstrapIcon from '../icons/BootstrapIcon'
+import BanksTab from './BanksTab'
 import GeneralTab from './GeneralTab'
 import PasswordTab from './PasswordTab'
 import ProfileTab from './ProfileTab'
@@ -45,10 +46,13 @@ function SettingsModal({ onClose }) {
             </p>
           </div>
 
-          <div className="settings-panel-body">
+          <div
+            className={`settings-panel-body${activeTab === 'banks' ? ' settings-panel-body-banks' : ''}`}
+          >
             {activeTab === 'general' && <GeneralTab />}
             {activeTab === 'profile' && <ProfileTab />}
             {activeTab === 'password' && <PasswordTab />}
+            {activeTab === 'banks' && <BanksTab />}
           </div>
         </div>
       </div>

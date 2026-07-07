@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ROOT_FONT_SIZE_MAX,
   ROOT_FONT_SIZE_MIN,
@@ -17,7 +17,11 @@ import {
   readStarsSettings,
   writeStarsSettings,
 } from '../../config/starsBackground'
-import { FormBody, FormCard } from '../form'
+import { fetchGeneralSettings, updateGeneralSettings } from '../../api/userSettings'
+import { useToast } from '../../context/ToastContext'
+import { getApiErrorMessage } from '../../utils/apiErrors'
+import { DEFAULT_BANK_STATEMENT_NORMALIZATION_PROMPT } from '../../constants/bankStatementNormalizationPrompt'
+import { FormBody, FormButton, FormCard, FormFooter } from '../form'
 import BootstrapIcon from '../icons/BootstrapIcon'
 
 function SettingsStepper({
@@ -60,11 +64,65 @@ function SettingsStepper({
 }
 
 function GeneralTab() {
+  const { showToast } = useToast()
   const [fontSizePx, setFontSizePx] = useState(() => readRootFontSizePx())
   const [starsSettings, setStarsSettings] = useState(() => readStarsSettings())
+  const [bankPrompt, setBankPrompt] = useState(DEFAULT_BANK_STATEMENT_NORMALIZATION_PROMPT)
+  const [isLoadingPrompt, setIsLoadingPrompt] = useState(true)
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPrompt = async () => {
+      try {
+        const settings = await fetchGeneralSettings()
+        if (!cancelled) {
+          setBankPrompt(settings.bank_statement_normalization_prompt)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          showToast(
+            getApiErrorMessage(error, 'Unable to load bank statement prompt.'),
+          )
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingPrompt(false)
+        }
+      }
+    }
+
+    loadPrompt()
+
+    return () => {
+      cancelled = true
+    }
+  }, [showToast])
 
   const updateStars = (patch) => {
     setStarsSettings(writeStarsSettings(patch))
+  }
+
+  const handleSavePrompt = async () => {
+    const trimmedPrompt = bankPrompt.trim()
+    if (!trimmedPrompt) {
+      showToast('Prompt cannot be empty.', { type: 'error' })
+      return
+    }
+
+    setIsSavingPrompt(true)
+    try {
+      const settings = await updateGeneralSettings({
+        bank_statement_normalization_prompt: trimmedPrompt,
+      })
+      setBankPrompt(settings.bank_statement_normalization_prompt)
+      showToast('Bank statement prompt saved.', { type: 'success' })
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Unable to save bank statement prompt.'))
+    } finally {
+      setIsSavingPrompt(false)
+    }
   }
 
   return (
@@ -150,6 +208,40 @@ function GeneralTab() {
               updateStars({ brightness: starsSettings.brightness + STAR_BRIGHTNESS_STEP })
             }
           />
+        </div>
+
+        <div className="settings-prompt-section">
+          <div className="settings-option-copy">
+            <p className="settings-option-label">ChatGPT bank statement normalization prompt</p>
+            <p className="settings-option-hint">
+              Customize the prompt used when normalizing bank statements in ChatGPT before
+              importing CSV here.
+            </p>
+          </div>
+
+          <textarea
+            id="bank-statement-normalization-prompt"
+            className="form-input settings-prompt-textarea"
+            value={bankPrompt}
+            onChange={(event) => setBankPrompt(event.target.value)}
+            rows={12}
+            disabled={isLoadingPrompt || isSavingPrompt}
+            spellCheck={false}
+          />
+
+          <FormFooter className="settings-prompt-footer">
+            <FormButton
+              type="button"
+              onClick={handleSavePrompt}
+              disabled={isLoadingPrompt || isSavingPrompt}
+            >
+              <BootstrapIcon
+                icon={isSavingPrompt ? 'bi-arrow-repeat' : 'bi-check-lg'}
+                className={isSavingPrompt ? 'animate-spin' : undefined}
+              />
+              {isSavingPrompt ? 'Saving…' : 'Save prompt'}
+            </FormButton>
+          </FormFooter>
         </div>
       </FormBody>
     </FormCard>

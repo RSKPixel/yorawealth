@@ -31,6 +31,17 @@ export const navSections = [
     ],
   },
   {
+    label: 'Transactions',
+    items: [
+      {
+        label: 'Bank',
+        path: '/transactions/bank',
+        icon: 'bi-bank2',
+        tone: 'sky',
+      },
+    ],
+  },
+  {
     label: 'Reports',
     items: [
       {

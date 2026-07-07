@@ -12,7 +12,8 @@ function BaseLayout() {
     location.pathname.startsWith('/overview') ||
     location.pathname.startsWith('/mutual-fund') ||
     location.pathname.startsWith('/stocks') ||
-    location.pathname.startsWith('/capital-gains')
+    location.pathname.startsWith('/capital-gains') ||
+    location.pathname.startsWith('/transactions/bank')
 
   return (
     <SettingsProvider>

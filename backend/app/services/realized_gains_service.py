@@ -13,7 +13,7 @@ from app.repositories.mutual_fund_transaction_repository import (
     MutualFundTransactionRepository,
 )
 from app.repositories.stock_transaction_repository import StockTransactionRepository
-from app.schemas.capital_gains import RealizedGainRow, RealizedGainsResponse
+from app.schemas.capital_gains import RealizedGainRow
 from app.services.stock_trade_types import BUY_LIKE_TRADE_TYPES, SELL_TRADE_TYPES
 
 
@@ -466,7 +466,7 @@ class RealizedGainsService:
         self.stock_transaction_repository = StockTransactionRepository(db)
         self.mutual_fund_transaction_repository = MutualFundTransactionRepository(db)
 
-    def list_realized_gains(self, client_pan: str) -> RealizedGainsResponse:
+    def compute_realized_gains(self, client_pan: str) -> list[RealizedGainRow]:
         stock_transactions = self.stock_transaction_repository.list_by_client_pan_chronological(
             client_pan
         )
@@ -493,4 +493,4 @@ class RealizedGainsService:
             rows.extend(_process_mutual_fund_sells(group_transactions))
 
         rows = _aggregate_realized_rows(rows)
-        return RealizedGainsResponse(transactions=rows)
+        return rows

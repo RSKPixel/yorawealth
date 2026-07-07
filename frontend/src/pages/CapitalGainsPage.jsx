@@ -36,7 +36,7 @@ function CapitalGainsPage() {
           className={`cg-tab-panel flex min-h-0 flex-1 flex-col${activeTab !== 'realized' ? ' cg-tab-panel-hidden' : ''}`}
           role="tabpanel"
           aria-hidden={activeTab !== 'realized'}
-          inert={activeTab !== 'realized' ? '' : undefined}
+          inert={activeTab !== 'realized'}
         >
           <RealizedGainsPanel />
         </div>
@@ -45,7 +45,7 @@ function CapitalGainsPage() {
           className={`cg-tab-panel${activeTab !== 'unrealized' ? ' cg-tab-panel-hidden' : ''}`}
           role="tabpanel"
           aria-hidden={activeTab !== 'unrealized'}
-          inert={activeTab !== 'unrealized' ? '' : undefined}
+          inert={activeTab !== 'unrealized'}
         >
           <p className="text-sm text-zinc-300">Unrealized gains reporting will appear here.</p>
         </div>

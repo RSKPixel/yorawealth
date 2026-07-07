@@ -6,14 +6,9 @@ import {
   getCurrentIndianFinancialYear,
   getIndianFinancialYear,
 } from '../../utils/financialYear'
-import { formatGainAmount, formatHoldingPeriod } from '../../utils/capitalGainsFormat'
-import {
-  formatNav,
-  formatQuantity,
-  formatTradeValue,
-  formatTransactionDate,
-} from '../../utils/mutualFundFormat'
-import { formatStockQuantity } from '../../utils/stockFormat'
+import { formatGainAmount } from '../../utils/capitalGainsFormat'
+import { formatTransactionDate } from '../../utils/mutualFundFormat'
+import { SALE_REASON_MAX_LENGTH } from '../../utils/capitalGainValidation'
 
 function gainClassName(value) {
   if (value > 0) return 'mf-gain-positive'
@@ -21,66 +16,80 @@ function gainClassName(value) {
   return 'mf-gain-neutral'
 }
 
-function formatRowQuantity(row) {
-  if (row.asset_type === 'stock') {
-    return formatStockQuantity(row.quantity)
-  }
-
-  return formatQuantity(row.quantity)
-}
-
-function formatSellRate(row) {
-  if (row.asset_type === 'mutual-fund') {
-    return formatNav(row.sell_rate)
-  }
-
-  return formatTradeValue(row.sell_rate)
-}
-
-function formatBuyRate(row) {
-  if (row.asset_type === 'mutual-fund') {
-    return formatNav(row.buy_rate)
-  }
-
-  return formatTradeValue(row.buy_rate)
-}
-
-function formatAccountRef(row) {
-  if (row.asset_type === 'mutual-fund') {
-    return row.folio ?? '—'
-  }
-
-  return row.broker ?? '—'
-}
-
-function hasTermGain(value) {
-  if (value == null || value === '') {
-    return false
-  }
-
-  const parsed = Number(value)
-  return Number.isFinite(parsed) && parsed !== 0
-}
-
-function TermGainCell({ gain, holdingPeriodDays }) {
-  const showHoldingPeriod = hasTermGain(gain) && holdingPeriodDays != null
-
+function TermGainCell({ gain }) {
   return (
     <td className={`mf-table-cell-right tabular-nums ${gainClassName(gain)}`}>
-      <div>{formatGainAmount(gain)}</div>
-      {showHoldingPeriod && (
-        <span className="mf-fund-meta">({formatHoldingPeriod(holdingPeriodDays)})</span>
-      )}
+      {formatGainAmount(gain)}
     </td>
   )
 }
 
-function RealizedSellTransactionsTable({ transactions }) {
+function SaleReasonEditor({
+  row,
+  value,
+  onChange,
+  onSave,
+  isSaving,
+  disabled,
+}) {
+  const savedValue = row.sale_reason ?? ''
+  const isDirty = value.trim() !== savedValue.trim()
+  const isTooLong = value.length > SALE_REASON_MAX_LENGTH
+  const canSave = isDirty && !isTooLong && !isSaving && !disabled
+
+  return (
+    <div
+      className="cg-sale-reason-editor"
+      onClick={(event) => event.stopPropagation()}
+      onKeyDown={(event) => event.stopPropagation()}
+    >
+      <input
+        type="text"
+        className="cg-sale-reason-input"
+        value={value}
+        maxLength={SALE_REASON_MAX_LENGTH}
+        placeholder="Reason for Sale"
+        onChange={(event) => onChange(row.id, event.target.value)}
+        disabled={disabled || isSaving}
+        aria-label={`Reason for sale for ${row.label}`}
+      />
+      <button
+        type="button"
+        className="cg-sale-reason-save-btn stocks-txn-action-btn"
+        onClick={() => onSave(row)}
+        disabled={!canSave}
+        aria-label={`Save reason for sale for ${row.label}`}
+      >
+        <BootstrapIcon
+          icon={isSaving ? 'bi-arrow-repeat' : 'bi-check-lg'}
+          className={isSaving ? 'animate-spin' : undefined}
+        />
+      </button>
+    </div>
+  )
+}
+
+function RealizedSellTransactionsTable({
+  transactions,
+  onRowClick,
+  onSaveSaleReason,
+  isMutating = false,
+  savingSaleReasonRowId = null,
+}) {
   const [query, setQuery] = useState('')
   const [assetFilter, setAssetFilter] = useState('all')
   const [financialYearFilter, setFinancialYearFilter] = useState(() =>
     getCurrentIndianFinancialYear(),
   )
+  const [saleReasonDrafts, setSaleReasonDrafts] = useState({})
+
+  useEffect(() => {
+    const next = {}
+    for (const row of transactions) {
+      next[row.id] = row.sale_reason ?? ''
+    }
+    setSaleReasonDrafts(next)
+  }, [transactions])
 
   const assetScopedTransactions = useMemo(() => {
     if (assetFilter === 'all') {
@@ -156,27 +165,31 @@ function RealizedSellTransactionsTable({ transactions }) {
   const totals = useMemo(() => {
     return filtered.reduce(
       (acc, row) => {
-        acc.quantity += row.quantity
-        acc.trade_value += row.trade_value
-        acc.purchase_value += row.purchase_value
         acc.short_term_gain += row.short_term_gain ?? 0
         acc.long_term_gain += row.long_term_gain ?? 0
         return acc
       },
       {
-        quantity: 0,
-        trade_value: 0,
-        purchase_value: 0,
         short_term_gain: 0,
         long_term_gain: 0,
       },
     )
   }, [filtered])
 
+  const updateSaleReasonDraft = (rowId, value) => {
+    setSaleReasonDrafts((current) => ({ ...current, [rowId]: value }))
+  }
+
   const hasActiveFilters =
     query.trim() ||
     assetFilter !== 'all' ||
     financialYearFilter !== getCurrentIndianFinancialYear()
+
+  const columnCount = 5
+
+  const handleRowActivate = (row) => {
+    onRowClick?.(row)
+  }
 
   if (!transactions?.length) {
     return (
@@ -200,7 +213,7 @@ function RealizedSellTransactionsTable({ transactions }) {
           <input
             type="search"
             className="mf-txn-search"
-            placeholder="Search symbol, folio, broker, ISIN…"
+            placeholder="Search symbol, broker, ISIN…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
@@ -265,80 +278,65 @@ function RealizedSellTransactionsTable({ transactions }) {
           <thead>
             <tr>
               <th>Date</th>
-              <th>Symbol</th>
-              <th>Folio / Broker</th>
-              <th className="mf-table-cell-right">Qty</th>
-              <th className="mf-table-cell-right">Sale value</th>
-              <th className="mf-table-cell-right">Purchase value</th>
+              <th>Symbol / Fund</th>
               <th className="mf-table-cell-right">STCG</th>
               <th className="mf-table-cell-right">LTCG</th>
+              <th>Reason for Sale</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={8} className="mf-txn-empty">
+                <td colSpan={columnCount} className="mf-txn-empty">
                   No sell transactions match your filters.
                 </td>
               </tr>
             ) : (
               <>
                 {filtered.map((row) => (
-                  <tr key={row.id}>
+                  <tr
+                    key={row.id}
+                    className="cg-gains-row"
+                    onClick={() => handleRowActivate(row)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        handleRowActivate(row)
+                      }
+                    }}
+                    tabIndex={0}
+                    aria-label={`View details for ${row.label}`}
+                  >
                     <td className="tabular-nums">{formatTransactionDate(row.transaction_date)}</td>
-                    <td>
+                    <td className="cg-symbol-cell">
                       {row.asset_type === 'mutual-fund' ? (
-                        <div className="mf-fund-cell">
-                          <span className="mf-fund-name mf-fund-name-sm" title={row.label}>
-                            {row.label}
-                          </span>
-                          {row.meta && <span className="mf-fund-meta">{row.meta}</span>}
-                        </div>
+                        <span className="mf-fund-name mf-fund-name-sm" title={row.label}>
+                          {row.label}
+                        </span>
                       ) : (
-                        <>
-                          <span className="font-medium text-slate-100">{row.label}</span>
-                          {row.meta && <span className="mf-fund-meta ml-1.5">{row.meta}</span>}
-                        </>
+                        <span className="font-medium text-slate-100">{row.label}</span>
                       )}
                     </td>
-                    <td className="tabular-nums">{formatAccountRef(row)}</td>
-                    <td className="mf-table-cell-right tabular-nums">
-                      {formatRowQuantity(row)}
+                    <TermGainCell gain={row.short_term_gain} />
+                    <TermGainCell gain={row.long_term_gain} />
+                    <td className="cg-sale-reason-cell">
+                      <SaleReasonEditor
+                        row={row}
+                        value={saleReasonDrafts[row.id] ?? ''}
+                        onChange={updateSaleReasonDraft}
+                        onSave={(targetRow) => {
+                          const trimmed = (saleReasonDrafts[targetRow.id] ?? '').trim()
+                          onSaveSaleReason?.(targetRow, trimmed || null)
+                        }}
+                        isSaving={savingSaleReasonRowId === row.id}
+                        disabled={isMutating && savingSaleReasonRowId !== row.id}
+                      />
                     </td>
-                    <td className="mf-table-cell-right tabular-nums">
-                      <div>{formatTradeValue(row.trade_value)}</div>
-                      <span className="mf-fund-meta">({formatSellRate(row)})</span>
-                    </td>
-                    <td className="mf-table-cell-right tabular-nums">
-                      <div>{formatTradeValue(row.purchase_value)}</div>
-                      <span className="mf-fund-meta">({formatBuyRate(row)})</span>
-                    </td>
-                    <TermGainCell
-                      gain={row.short_term_gain}
-                      holdingPeriodDays={row.short_term_holding_period_days}
-                    />
-                    <TermGainCell
-                      gain={row.long_term_gain}
-                      holdingPeriodDays={row.long_term_holding_period_days}
-                    />
                   </tr>
                 ))}
                 <tr className="mf-table-total-row">
-                  <td colSpan={3}>
+                  <td colSpan={2}>
                     <span className="mf-table-total-label">Total</span>
-                  </td>
-                  <td className="mf-table-cell-right tabular-nums">
-                    {assetFilter === 'all'
-                      ? '—'
-                      : assetFilter === 'stock'
-                        ? formatStockQuantity(totals.quantity)
-                        : formatQuantity(totals.quantity)}
-                  </td>
-                  <td className="mf-table-cell-right tabular-nums">
-                    {formatTradeValue(totals.trade_value)}
-                  </td>
-                  <td className="mf-table-cell-right tabular-nums">
-                    {formatTradeValue(totals.purchase_value)}
                   </td>
                   <td className={`mf-table-cell-right tabular-nums ${gainClassName(totals.short_term_gain)}`}>
                     {formatGainAmount(totals.short_term_gain)}
@@ -346,6 +344,7 @@ function RealizedSellTransactionsTable({ transactions }) {
                   <td className={`mf-table-cell-right tabular-nums ${gainClassName(totals.long_term_gain)}`}>
                     {formatGainAmount(totals.long_term_gain)}
                   </td>
+                  <td />
                 </tr>
               </>
             )}

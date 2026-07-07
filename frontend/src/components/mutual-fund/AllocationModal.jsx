@@ -168,7 +168,7 @@ function AllocationModal({ holdings, onClose }) {
                 activeTab !== 'allocation' ? ' mf-allocation-tab-panel-hidden' : ''
               }`}
               aria-hidden={activeTab !== 'allocation'}
-              inert={activeTab !== 'allocation' ? '' : undefined}
+              inert={activeTab !== 'allocation'}
             >
               <div className="mf-allocation-panel">
                 <div className="mf-allocation-table-wrap">
@@ -252,7 +252,7 @@ function AllocationModal({ holdings, onClose }) {
                 activeTab !== 'rebalancing' ? ' mf-allocation-tab-panel-hidden' : ''
               }`}
               aria-hidden={activeTab !== 'rebalancing'}
-              inert={activeTab !== 'rebalancing' ? '' : undefined}
+              inert={activeTab !== 'rebalancing'}
             >
               <RebalancingPanel
                 allocation={allocation}

@@ -9,6 +9,9 @@ from app.core.config import settings
 from app.core.database import Base
 from app.models import (  # noqa: F401
     AmfiSchemeSync,
+    BankAccount,
+    BankTransaction,
+    CapitalGain,
     MutualFundHistorical,
     MutualFundTransaction,
     NseEod,
@@ -17,6 +20,7 @@ from app.models import (  # noqa: F401
     Stock,
     StockTransaction,
     User,
+    UserSettings,
 )
 
 config = context.config

@@ -474,6 +474,78 @@ body {
     @apply text-sky-300/80;
   }
 
+  .bank-page .mf-empty-state-icon {
+    @apply text-sky-300/80;
+  }
+
+  .bank-account-filter {
+    @apply w-full sm:max-w-md;
+  }
+
+  .bank-account-filter-label {
+    @apply mb-1 block text-xs font-medium text-slate-400;
+  }
+
+  .bank-account-filter-select {
+    @apply w-full rounded-lg border border-slate-600/50 bg-slate-900/60 px-3 py-2 text-xs text-slate-100 outline-none transition focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .bank-txn-toolbar {
+    @apply flex flex-col gap-3;
+  }
+
+  .bank-txn-toolbar .mf-txn-search-wrap {
+    @apply relative w-full max-w-sm flex-none;
+  }
+
+  .bank-txn-toolbar .cg-filter-groups {
+    @apply w-full min-w-0;
+  }
+
+  .bank-txn-table .bank-txn-debit {
+    @apply text-rose-300/90;
+  }
+
+  .bank-txn-table .bank-txn-credit {
+    @apply text-emerald-300/90;
+  }
+
+  .bank-txn-table .bank-txn-ref {
+    @apply text-xs text-slate-400;
+  }
+
+  .bank-import-progress {
+    @apply mt-4 space-y-3 rounded-xl border border-slate-700/50 bg-slate-900/40 p-4;
+  }
+
+  .bank-import-progress-track {
+    @apply h-2 overflow-hidden rounded-full bg-slate-800/80;
+  }
+
+  .bank-import-progress-fill {
+    @apply h-full rounded-full bg-violet-500/80 transition-all duration-500 ease-out;
+  }
+
+  .bank-import-progress-message {
+    @apply text-sm text-slate-200;
+  }
+
+  .bank-import-progress-steps {
+    @apply space-y-2 text-xs text-slate-500;
+  }
+
+  .bank-import-progress-step {
+    @apply flex items-center gap-2;
+  }
+
+  .bank-import-progress-step-active {
+    @apply text-violet-200;
+  }
+
+  .bank-import-progress-step-done {
+    @apply text-emerald-300/90;
+  }
+
   .mf-page-layout {
     @apply flex flex-col gap-4;
   }
@@ -621,6 +693,38 @@ body {
 
   .stocks-import-submit-btn {
     @apply border-sky-500/30 bg-sky-500/15 text-sky-100 hover:border-sky-400/40 hover:bg-sky-500/25 hover:text-sky-50;
+  }
+
+  .bank-import-modal .stocks-import-modal-body {
+    @apply space-y-5;
+  }
+
+  .bank-import-field {
+    @apply flex flex-col gap-2;
+  }
+
+  .bank-import-field-hint {
+    @apply text-xs leading-relaxed text-slate-500;
+  }
+
+  .bank-import-format-hint {
+    @apply rounded-lg border border-slate-700/40 bg-slate-900/30 px-3 py-2.5 text-xs leading-relaxed text-slate-400;
+  }
+
+  .bank-import-copy-prompt-btn {
+    @apply flex w-full items-center gap-2 rounded-lg border border-violet-500/25 bg-violet-500/10 px-3 py-2.5 text-left text-xs leading-relaxed text-violet-100 transition hover:border-violet-400/35 hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .settings-prompt-section {
+    @apply flex flex-col gap-3 border-t border-slate-700/40 pt-4;
+  }
+
+  .settings-prompt-textarea {
+    @apply min-h-[12rem] resize-y font-mono text-xs leading-relaxed;
+  }
+
+  .settings-prompt-footer {
+    @apply justify-end border-t-0 bg-transparent px-0 py-0;
   }
 
   .stocks-txn-actions-col {
@@ -2041,7 +2145,99 @@ body {
   }
 
   .cg-gains-table {
-    @apply min-w-[1120px] text-sm;
+    @apply min-w-[720px] text-sm;
+  }
+
+  .cg-gains-row {
+    @apply cursor-pointer transition hover:bg-slate-800/40;
+  }
+
+  .cg-symbol-cell {
+    @apply min-w-[8rem] max-w-[16rem];
+  }
+
+  .cg-sale-reason-cell {
+    @apply min-w-[10rem];
+  }
+
+  .cg-sale-reason-editor {
+    @apply flex items-center gap-1;
+  }
+
+  .cg-sale-reason-input {
+    @apply min-w-0 flex-1 rounded border border-slate-600/80 bg-slate-900/60 px-2 py-0.5 text-xs text-slate-100 placeholder:text-slate-500 focus:border-sky-500/70 focus:outline-none focus:ring-1 focus:ring-sky-500/50 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .cg-sale-reason-save-btn {
+    @apply shrink-0 text-sky-400/90 hover:text-sky-300;
+  }
+
+  .cg-detail-modal {
+    @apply w-full max-w-[28rem];
+  }
+
+  .cg-detail-modal .app-modal-header {
+    @apply border-b border-slate-700/50 px-3 py-2.5;
+  }
+
+  .cg-detail-modal .shell-page-card-title {
+    @apply text-sm;
+  }
+
+  .cg-detail-body {
+    @apply space-y-3 px-3 py-3 text-sm;
+  }
+
+  .cg-detail-meta {
+    @apply flex flex-wrap items-center gap-x-1.5 text-sm text-slate-400;
+  }
+
+  .cg-detail-meta-sep {
+    @apply text-slate-600;
+  }
+
+  .cg-detail-section {
+    @apply overflow-hidden rounded-lg border border-slate-700/50 bg-slate-900/40;
+  }
+
+  .cg-detail-section-title {
+    @apply border-b border-slate-700/40 bg-slate-800/50 px-2.5 py-1 text-sm font-semibold uppercase tracking-wider text-slate-400;
+  }
+
+  .cg-detail-rows {
+    @apply divide-y divide-slate-700/35;
+  }
+
+  .cg-detail-row {
+    @apply grid grid-cols-[minmax(0,6.5rem)_1fr] items-baseline gap-2 px-2.5 py-1.5 text-sm;
+  }
+
+  .cg-detail-row-label {
+    @apply text-sm text-slate-400;
+  }
+
+  .cg-detail-row-value {
+    @apply text-right text-sm tabular-nums text-slate-100;
+  }
+
+  .cg-detail-section-gains .cg-detail-row {
+    @apply grid-cols-[auto_minmax(0,1fr)] items-center gap-4;
+  }
+
+  .cg-detail-section-gains .cg-detail-row-label {
+    @apply shrink-0 whitespace-nowrap;
+  }
+
+  .cg-detail-gain-values {
+    @apply inline-flex w-full items-baseline justify-end gap-3 whitespace-nowrap;
+  }
+
+  .cg-detail-gain-days {
+    @apply text-sm tabular-nums text-slate-400;
+  }
+
+  .cg-detail-note {
+    @apply px-2.5 py-2 text-sm leading-relaxed text-slate-200;
   }
 
   .cg-gains-table th,
@@ -2106,7 +2302,7 @@ body {
   }
 
   .settings-panel {
-    @apply min-h-0 min-w-0 flex-1 overflow-y-auto;
+    @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden;
   }
 
   .settings-panel-header {
@@ -2122,7 +2318,11 @@ body {
   }
 
   .settings-panel-body {
-    @apply p-4 sm:p-6;
+    @apply min-h-0 flex-1 overflow-y-auto p-4 sm:p-6;
+  }
+
+  .settings-panel-body-banks {
+    @apply flex flex-col overflow-hidden;
   }
 
   .settings-font-size-row,
@@ -2175,6 +2375,50 @@ body {
 
   .settings-toggle-on .settings-toggle-thumb {
     @apply translate-x-5 bg-teal-100;
+  }
+
+  .settings-banks-tab {
+    @apply flex min-h-0 flex-1 flex-col gap-5;
+  }
+
+  .settings-banks-form-footer {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  .settings-banks-delete-btn {
+    @apply text-rose-300 hover:text-rose-200;
+  }
+
+  .settings-banks-empty {
+    @apply rounded-lg border border-dashed border-slate-700/60 px-3 py-4 text-sm text-slate-400;
+  }
+
+  .settings-banks-list-skeleton {
+    @apply min-h-[4rem] animate-pulse rounded-lg border border-slate-700/50 bg-slate-800/40;
+  }
+
+  .settings-banks-table-wrap {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+
+  .settings-banks-table-wrap .cg-table-viewport {
+    @apply min-h-0 flex-1;
+  }
+
+  .settings-banks-table {
+    @apply w-full min-w-0 text-sm;
+  }
+
+  .settings-banks-table-wrap .settings-banks-table thead th {
+    @apply sticky top-0 z-10 bg-slate-800/95 backdrop-blur-sm;
+  }
+
+  .settings-banks-table-row-active {
+    @apply bg-slate-800/80 ring-1 ring-inset ring-sky-500/40;
+  }
+
+  .settings-banks-table-bank {
+    @apply font-medium text-slate-100;
   }
 
   .profile-photo-row {

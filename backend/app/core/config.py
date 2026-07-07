@@ -8,6 +8,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     app_name: str = "YORA Wealth API"
@@ -30,6 +31,7 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     profile_photo_max_bytes: int = 2 * 1024 * 1024
     cams_pdf_max_bytes: int = 10 * 1024 * 1024
+    bank_statement_max_bytes: int = 10 * 1024 * 1024
 
     @property
     def database_url(self) -> str:

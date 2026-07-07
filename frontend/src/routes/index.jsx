@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import ProtectedRoute from '../components/common/ProtectedRoute'
 import BaseLayout from '../layouts/BaseLayout'
+import BankTransactionsPage from '../pages/BankTransactionsPage'
 import CalculatorsPage from '../pages/CalculatorsPage'
 import CapitalGainsPage from '../pages/CapitalGainsPage'
 import DashboardPage from '../pages/DashboardPage'
@@ -27,6 +28,7 @@ export const routes = (
       <Route path="stocks" element={<StocksPage />} />
       <Route path="capital-gains" element={<CapitalGainsPage />} />
       <Route path="ppf" element={<PpfPage />} />
+      <Route path="transactions/bank" element={<BankTransactionsPage />} />
       <Route path="calculators" element={<CalculatorsPage />} />
       <Route path="market-data" element={<MarketDataPage />} />
     </Route>
