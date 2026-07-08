@@ -50,6 +50,7 @@ OUTPUT_COLUMNS = [
     "nav",
     "quantity",
     "trade_value",
+    "unit_balance",
 ]
 
 
@@ -238,6 +239,7 @@ def extract_cams_pdf(
     result["trade_value"] = df["investment_amount"]
     result["quantity"] = df["units"]
     result["nav"] = df["nav"]
+    result["unit_balance"] = df["unitbalance"]
 
     records = result.to_dict(orient="records")
     return [

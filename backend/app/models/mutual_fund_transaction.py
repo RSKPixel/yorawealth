@@ -25,6 +25,7 @@ class MutualFundTransaction(Base):
     nav: Mapped[Decimal] = mapped_column(Numeric(18, 4))
     quantity: Mapped[Decimal] = mapped_column(Numeric(18, 3))
     trade_value: Mapped[Decimal] = mapped_column(Numeric(18, 2))
+    unit_balance: Mapped[Optional[Decimal]] = mapped_column(Numeric(18, 3), nullable=True)
     source_filename: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime,

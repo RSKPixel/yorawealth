@@ -8,6 +8,7 @@ from app.models.mutual_fund_transaction import MutualFundTransaction
 
 QUANTITY_QUANTIZER = Decimal("0.001")
 TRADE_VALUE_QUANTIZER = Decimal("0.01")
+UNIT_BALANCE_QUANTIZER = Decimal("0.001")
 
 
 def _normalize_quantity(value) -> Decimal:
@@ -18,6 +19,12 @@ def _normalize_trade_value(value) -> Decimal:
     return Decimal(str(value)).quantize(TRADE_VALUE_QUANTIZER)
 
 
+def _normalize_unit_balance(value) -> Optional[Decimal]:
+    if value is None:
+        return None
+    return Decimal(str(value)).quantize(UNIT_BALANCE_QUANTIZER)
+
+
 def _transaction_key(
     client_pan: str,
     folio: str,
@@ -26,7 +33,8 @@ def _transaction_key(
     trade_type: str,
     quantity: Decimal,
     trade_value: Decimal,
-) -> tuple[str, str, str, date, str, Decimal, Decimal]:
+    unit_balance: Optional[Decimal],
+) -> tuple[str, str, str, date, str, Decimal, Decimal, Optional[Decimal]]:
     return (
         client_pan.upper(),
         folio,
@@ -35,6 +43,7 @@ def _transaction_key(
         trade_type,
         _normalize_quantity(quantity),
         _normalize_trade_value(trade_value),
+        _normalize_unit_balance(unit_balance),
     )
 
 
@@ -51,20 +60,29 @@ class MutualFundTransactionRepository:
         trade_type: str,
         quantity: Decimal,
         trade_value: Decimal,
+        unit_balance: Optional[Decimal],
     ) -> Optional[MutualFundTransaction]:
-        return (
-            self.db.query(MutualFundTransaction)
-            .filter(
-                MutualFundTransaction.client_pan == client_pan.upper(),
-                MutualFundTransaction.folio == folio,
-                MutualFundTransaction.isin == isin,
-                MutualFundTransaction.transaction_date == transaction_date,
-                MutualFundTransaction.trade_type == trade_type,
-                MutualFundTransaction.quantity == quantity,
-                MutualFundTransaction.trade_value == trade_value,
-            )
-            .first()
+        normalized_balance = _normalize_unit_balance(unit_balance)
+        query = self.db.query(MutualFundTransaction).filter(
+            MutualFundTransaction.client_pan == client_pan.upper(),
+            MutualFundTransaction.folio == folio,
+            MutualFundTransaction.isin == isin,
+            MutualFundTransaction.transaction_date == transaction_date,
+            MutualFundTransaction.trade_type == trade_type,
+            MutualFundTransaction.quantity == quantity,
+            MutualFundTransaction.trade_value == trade_value,
         )
+
+        if normalized_balance is None:
+            return query.filter(MutualFundTransaction.unit_balance.is_(None)).first()
+
+        existing = query.filter(
+            MutualFundTransaction.unit_balance == normalized_balance
+        ).first()
+        if existing is not None:
+            return existing
+
+        return query.filter(MutualFundTransaction.unit_balance.is_(None)).first()
 
     def _apply_row(
         self,
@@ -73,6 +91,7 @@ class MutualFundTransactionRepository:
         source_filename: str,
         quantity: Decimal,
         trade_value: Decimal,
+        unit_balance: Optional[Decimal],
     ) -> None:
         record.fund_name = row["fund_name"]
         record.amc = row["amc"]
@@ -82,6 +101,7 @@ class MutualFundTransactionRepository:
         record.nav = Decimal(str(row["nav"]))
         record.quantity = quantity
         record.trade_value = trade_value
+        record.unit_balance = unit_balance
         record.source_filename = source_filename
 
     def upsert_many(
@@ -95,7 +115,7 @@ class MutualFundTransactionRepository:
         created_count = 0
         updated_count = 0
         records_by_key: dict[
-            tuple[str, str, str, date, str, Decimal, Decimal],
+            tuple[str, str, str, date, str, Decimal, Decimal, Optional[Decimal]],
             MutualFundTransaction,
         ] = {}
 
@@ -103,6 +123,7 @@ class MutualFundTransactionRepository:
             transaction_date = date.fromisoformat(row["transaction_date"])
             quantity = _normalize_quantity(row["quantity"])
             trade_value = _normalize_trade_value(row["trade_value"])
+            unit_balance = _normalize_unit_balance(row.get("unit_balance"))
             key = _transaction_key(
                 client_pan,
                 row["folio"],
@@ -111,11 +132,14 @@ class MutualFundTransactionRepository:
                 row["trade_type"],
                 quantity,
                 trade_value,
+                unit_balance,
             )
 
             pending = records_by_key.get(key)
             if pending is not None:
-                self._apply_row(pending, row, source_filename, quantity, trade_value)
+                self._apply_row(
+                    pending, row, source_filename, quantity, trade_value, unit_balance
+                )
                 updated_count += 1
                 continue
 
@@ -127,10 +151,13 @@ class MutualFundTransactionRepository:
                 trade_type=row["trade_type"],
                 quantity=quantity,
                 trade_value=trade_value,
+                unit_balance=unit_balance,
             )
 
             if existing is not None:
-                self._apply_row(existing, row, source_filename, quantity, trade_value)
+                self._apply_row(
+                    existing, row, source_filename, quantity, trade_value, unit_balance
+                )
                 records_by_key[key] = existing
                 saved.append(existing)
                 updated_count += 1
@@ -150,6 +177,7 @@ class MutualFundTransactionRepository:
                 nav=Decimal(str(row["nav"])),
                 quantity=quantity,
                 trade_value=trade_value,
+                unit_balance=unit_balance,
                 source_filename=source_filename,
             )
             self.db.add(record)

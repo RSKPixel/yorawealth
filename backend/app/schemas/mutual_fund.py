@@ -17,6 +17,7 @@ class CamsTransactionRow(BaseModel):
     nav: float
     quantity: float
     trade_value: float
+    unit_balance: Optional[float] = None
 
 
 class CamsUploadResponse(BaseModel):

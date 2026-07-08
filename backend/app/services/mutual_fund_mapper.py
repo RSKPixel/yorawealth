@@ -17,4 +17,5 @@ def transaction_to_row(record: MutualFundTransaction) -> CamsTransactionRow:
         nav=float(record.nav),
         quantity=float(record.quantity),
         trade_value=float(record.trade_value),
+        unit_balance=float(record.unit_balance) if record.unit_balance is not None else None,
     )
