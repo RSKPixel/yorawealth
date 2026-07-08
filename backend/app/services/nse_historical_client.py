@@ -38,7 +38,11 @@ def create_nse_historical_session() -> requests.Session:
 
 
 def normalize_historical_symbol(symbol: str) -> str:
-    return eod_symbol_candidates(symbol)[0]
+    candidates = eod_symbol_candidates(symbol)
+    for candidate in candidates:
+        if "-" not in candidate:
+            return candidate
+    return candidates[-1]
 
 
 def _parse_historical_csv(text: str, symbol: str) -> list[dict]:

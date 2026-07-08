@@ -10,6 +10,7 @@ from app.api.banks import router as banks_router
 from app.api.capital_gains import router as capital_gains_router
 from app.api.market_data import router as market_data_router
 from app.api.mutual_fund import router as mutual_fund_router
+from app.api.overview import router as overview_router
 from app.api.ppf import router as ppf_router
 from app.api.stocks import router as stocks_router
 from app.api.user_settings import router as user_settings_router
@@ -40,6 +41,7 @@ app.include_router(bank_transactions_router, prefix="/api")
 app.include_router(capital_gains_router, prefix="/api")
 app.include_router(market_data_router, prefix="/api")
 app.include_router(mutual_fund_router, prefix="/api")
+app.include_router(overview_router, prefix="/api")
 app.include_router(ppf_router, prefix="/api")
 app.include_router(stocks_router, prefix="/api")
 app.include_router(user_settings_router, prefix="/api")

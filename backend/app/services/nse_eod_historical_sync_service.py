@@ -51,10 +51,11 @@ class NseEodHistoricalSyncService:
         if rows:
             self.repository.upsert_many(rows)
 
+        symbols_with_rows = {row["symbol"] for row in rows}
         messages = [
             f"Downloaded historical data for {symbol} from {from_date.isoformat()} to {to_date.isoformat()}"
             for symbol in normalized
-            if symbol not in {entry.split(":", 1)[0] for entry in errors}
+            if symbol in symbols_with_rows
         ]
 
         return {
@@ -90,8 +91,8 @@ class NseEodHistoricalSyncService:
                 resolved.add(normalize_historical_symbol(transaction.symbol))
 
         stored_symbols = {
-            normalize_historical_symbol(row.symbol)
-            for row in self.repository.list_distinct_symbols()
+            normalize_historical_symbol(symbol)
+            for symbol in self.repository.list_distinct_symbols()
         }
         resolved.update(stored_symbols)
         return sorted(resolved)

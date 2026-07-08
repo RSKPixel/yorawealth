@@ -96,6 +96,51 @@ class StockHistoricalRepository:
 
         return resolved
 
+    def map_close_series_up_to(
+        self,
+        symbols: list[str],
+        to_date: date,
+    ) -> dict[str, list[tuple[date, Decimal]]]:
+        if not symbols:
+            return {}
+
+        symbol_candidates: dict[str, list[str]] = {}
+        lookup_keys: set[str] = set()
+        candidate_to_symbol: dict[str, str] = {}
+        for symbol in symbols:
+            normalized = symbol.upper()
+            candidates = eod_symbol_candidates(normalized)
+            symbol_candidates[normalized] = candidates
+            for candidate in candidates:
+                lookup_keys.add(candidate)
+                candidate_to_symbol[candidate] = normalized
+
+        rows = (
+            self.db.query(
+                StockHistorical.symbol,
+                StockHistorical.trade_date,
+                StockHistorical.close,
+            )
+            .filter(
+                StockHistorical.symbol.in_(lookup_keys),
+                StockHistorical.trade_date <= to_date,
+            )
+            .order_by(
+                StockHistorical.symbol.asc(),
+                StockHistorical.trade_date.asc(),
+            )
+            .all()
+        )
+
+        series_by_symbol: dict[str, list[tuple[date, Decimal]]] = {}
+        for row_symbol, trade_date, close in rows:
+            symbol = candidate_to_symbol.get(row_symbol)
+            if symbol is None:
+                continue
+            series_by_symbol.setdefault(symbol, []).append((trade_date, close))
+
+        return series_by_symbol
+
     def get_earliest_date(self, symbol: str) -> Optional[date]:
         candidates = eod_symbol_candidates(symbol)
         row = (

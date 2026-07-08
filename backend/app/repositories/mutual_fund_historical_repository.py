@@ -96,6 +96,37 @@ class MutualFundHistoricalRepository:
 
         return latest_by_scheme
 
+    def map_nav_series_up_to(
+        self,
+        scheme_codes: list[str],
+        to_date: date,
+    ) -> dict[str, list[tuple[date, Decimal]]]:
+        if not scheme_codes:
+            return {}
+
+        rows = (
+            self.db.query(
+                MutualFundHistorical.scheme_code,
+                MutualFundHistorical.date,
+                MutualFundHistorical.nav,
+            )
+            .filter(
+                MutualFundHistorical.scheme_code.in_(scheme_codes),
+                MutualFundHistorical.date <= to_date,
+            )
+            .order_by(
+                MutualFundHistorical.scheme_code.asc(),
+                MutualFundHistorical.date.asc(),
+            )
+            .all()
+        )
+
+        series_by_scheme: dict[str, list[tuple[date, Decimal]]] = {}
+        for scheme_code, nav_date, nav in rows:
+            series_by_scheme.setdefault(scheme_code, []).append((nav_date, nav))
+
+        return series_by_scheme
+
     def upsert_many(self, rows: list[dict]) -> int:
         if not rows:
             return 0
