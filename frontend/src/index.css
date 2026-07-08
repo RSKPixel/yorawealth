@@ -2493,4 +2493,104 @@ body {
       transform: translateX(calc(100% + 1rem));
     }
   }
+
+  .calc-page-body {
+    @apply space-y-4;
+  }
+
+  .calc-panel {
+    @apply overflow-hidden rounded-xl border border-slate-700/50 bg-slate-900/30;
+  }
+
+  .calc-panel-header {
+    @apply border-b border-slate-700/40 px-4 py-3;
+  }
+
+  .calc-panel-title-wrap {
+    @apply flex items-start gap-3;
+  }
+
+  .calc-panel-icon {
+    @apply mt-0.5 text-base text-amber-300/90;
+  }
+
+  .calc-panel-title {
+    @apply text-sm font-semibold text-zinc-50;
+  }
+
+  .calc-panel-subtitle {
+    @apply mt-0.5 text-xs text-slate-400;
+  }
+
+  .calc-panel-grid {
+    @apply grid gap-4 p-4 lg:grid-cols-2;
+  }
+
+  .calc-inputs {
+    @apply space-y-4;
+  }
+
+  .calc-slider-field {
+    @apply space-y-2;
+  }
+
+  .calc-slider-label-row {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .calc-slider-value {
+    @apply rounded-md border border-slate-600/50 bg-slate-900/60 px-2 py-0.5 text-xs font-medium tabular-nums text-slate-100;
+  }
+
+  .calc-slider {
+    @apply h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700/80 accent-amber-400;
+  }
+
+  .calc-slider::-webkit-slider-thumb {
+    @apply h-4 w-4 appearance-none rounded-full border border-amber-200/40 bg-amber-400 shadow shadow-black/30;
+  }
+
+  .calc-slider::-moz-range-thumb {
+    @apply h-4 w-4 rounded-full border border-amber-200/40 bg-amber-400 shadow shadow-black/30;
+  }
+
+  .calc-slider-ends {
+    @apply flex justify-between text-[0.65rem] text-slate-500;
+  }
+
+  .calc-results {
+    @apply flex flex-col gap-2 rounded-lg border border-slate-700/45 bg-slate-800/30 p-4;
+  }
+
+  .calc-results-heading {
+    @apply mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400;
+  }
+
+  .calc-result-row {
+    @apply flex items-center justify-between gap-3 border-b border-slate-700/35 py-2 last:border-b-0;
+  }
+
+  .calc-result-row-emphasize .calc-result-value {
+    @apply text-base font-semibold text-amber-200;
+  }
+
+  .calc-result-label {
+    @apply text-xs text-slate-400;
+  }
+
+  .calc-result-value {
+    @apply text-sm font-medium tabular-nums text-zinc-50;
+  }
+
+  .calc-result-meta {
+    @apply mt-2 text-xs leading-relaxed text-slate-400;
+  }
+
+  .calc-result-meta strong {
+    @apply font-semibold text-slate-200;
+  }
+
+  .calc-results-empty {
+    @apply text-sm text-slate-400;
+  }
 }
