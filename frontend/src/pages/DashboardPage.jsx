@@ -1,17 +1,27 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { fetchPortfolioHoldings as fetchMutualFundHoldings } from '../api/mutualFund'
+import {
+  fetchPortfolioHoldings as fetchMutualFundHoldings,
+} from '../api/mutualFund'
+import { fetchInvestmentProgress } from '../api/overview'
 import { fetchPpfInvestments } from '../api/ppf'
 import { fetchStockHoldings } from '../api/stocks'
 import OverviewEmptyState from '../components/overview/OverviewEmptyState'
 import OverviewSummaryCards from '../components/overview/OverviewSummaryCards'
 import PortfolioBreakdownStrip from '../components/overview/PortfolioBreakdownStrip'
+import InvestmentProgressChart from '../components/overview/InvestmentProgressChart'
 import PortfolioPageHeader from '../components/layout/PortfolioPageHeader'
 import BootstrapIcon from '../components/icons/BootstrapIcon'
 import { useToast } from '../context/ToastContext'
 import { getApiErrorMessage } from '../utils/apiErrors'
 import { aggregateSummary, hasAnyPortfolioData } from '../utils/overviewAggregate'
 import { ppfToSummaryPart, workspaceIcon } from '../utils/ppfOverview'
+
+const EMPTY_PROGRESS = {
+  mf: [],
+  stocks: [],
+  ppf: [],
+}
 
 const EMPTY_SUMMARY = {
   total_invested: 0,
@@ -29,6 +39,8 @@ function DashboardPage() {
   const [stockSummary, setStockSummary] = useState(EMPTY_SUMMARY)
   const [ppfInvestments, setPpfInvestments] = useState([])
   const [ppfSummary, setPpfSummary] = useState(null)
+  const [investmentProgress, setInvestmentProgress] = useState(EMPTY_PROGRESS)
+  const [isProgressLoading, setIsProgressLoading] = useState(false)
 
   const loadOverviewData = useCallback(async () => {
     setIsLoading(true)
@@ -80,18 +92,32 @@ function DashboardPage() {
       setPpfSummary(null)
     }
 
-    if (errors.length === 3) {
+    if (errors.length > 0) {
       showToast(errors[0])
-    } else if (errors.length > 0) {
-      showToast(`${errors[0]} Other portfolio sections loaded successfully.`)
     }
 
     setIsLoading(false)
   }, [showToast])
 
-  useEffect(() => {
-    loadOverviewData()
-  }, [loadOverviewData])
+  const loadInvestmentProgress = useCallback(async () => {
+    setIsProgressLoading(true)
+
+    try {
+      const progressResult = await fetchInvestmentProgress()
+      setInvestmentProgress({
+        mf: progressResult.mf ?? [],
+        stocks: progressResult.stocks ?? [],
+        ppf: progressResult.ppf ?? [],
+      })
+    } catch (error) {
+      setInvestmentProgress(EMPTY_PROGRESS)
+      showToast(
+        getApiErrorMessage(error, 'Unable to load investment progress.'),
+      )
+    } finally {
+      setIsProgressLoading(false)
+    }
+  }, [showToast])
 
   const summary = useMemo(
     () =>
@@ -100,8 +126,6 @@ function DashboardPage() {
       ),
     [mfSummary, ppfSummary, stockSummary],
   )
-
-  const ppfCurrentValue = ppfSummary?.total_current_value ?? 0
 
   const hasPortfolioData = hasAnyPortfolioData({
     mfHoldings,
@@ -112,6 +136,25 @@ function DashboardPage() {
     ppfSummary,
     summary,
   })
+
+  useEffect(() => {
+    loadOverviewData()
+  }, [loadOverviewData])
+
+  useEffect(() => {
+    if (isLoading || !hasPortfolioData) {
+      return
+    }
+
+    loadInvestmentProgress()
+  }, [hasPortfolioData, isLoading, loadInvestmentProgress])
+
+  const ppfCurrentValue = ppfSummary?.total_current_value ?? 0
+
+  const hasInvestmentProgress = useMemo(
+    () => Object.values(investmentProgress).some((points) => points.length > 0),
+    [investmentProgress],
+  )
 
   const portfolios = useMemo(
     () => [
@@ -195,6 +238,23 @@ function DashboardPage() {
                 totalCurrentValue={summary.total_current_value}
               />
             </section>
+
+            {(hasPortfolioData && (isProgressLoading || hasInvestmentProgress)) && (
+              <section className="mf-section">
+                <div className="mf-section-header">
+                  <h2 className="mf-section-title">Investment progress</h2>
+                </div>
+                <div className="mf-net-chart-wrap" aria-busy={isProgressLoading}>
+                  {isProgressLoading ? (
+                    <div className="mf-loading">
+                      <div className="mf-table-skeleton mf-progress-chart-skeleton" />
+                    </div>
+                  ) : (
+                    <InvestmentProgressChart seriesByPortfolio={investmentProgress} />
+                  )}
+                </div>
+              </section>
+            )}
 
             <section className="mf-section">
               <div className="mf-section-header">

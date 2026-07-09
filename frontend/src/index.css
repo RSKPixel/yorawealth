@@ -1636,6 +1636,282 @@ body {
     @apply py-6 text-center text-xs text-slate-400;
   }
 
+  .mf-net-chart-wrap {
+    @apply rounded-xl border border-slate-700/50 bg-slate-900/40 p-3;
+  }
+
+  .mf-net-chart {
+    @apply min-h-[220px] min-w-0 w-full;
+  }
+
+  .mf-net-chart-canvas {
+    @apply min-h-[220px] w-full;
+  }
+
+  .mf-net-chart-svg {
+    @apply block w-full;
+  }
+
+  .mf-net-chart-axis {
+    @apply stroke-slate-600/70;
+    stroke-width: 1;
+  }
+
+  .mf-net-chart-grid {
+    @apply stroke-slate-700/40;
+    stroke-width: 1;
+  }
+
+  .mf-net-chart-axis-label {
+    @apply fill-slate-500 text-[10px];
+  }
+
+  .mf-net-chart-line {
+    fill: none;
+    @apply stroke-emerald-300;
+    stroke-width: 2;
+  }
+
+  .mf-net-chart-point {
+    @apply fill-emerald-300 stroke-emerald-950;
+    stroke-width: 1;
+  }
+
+  .mf-net-chart-empty {
+    @apply py-6 text-center text-xs text-slate-400;
+  }
+
+  .mf-progress-chart-panel {
+    @apply flex flex-col gap-3;
+  }
+
+  .mf-progress-chart-toolbar {
+    @apply flex flex-wrap items-center justify-between gap-3;
+  }
+
+  .mf-progress-chart-range-control {
+    --st-primary: rgb(125 211 252); /* sky-300 */
+    --st-hover-bg: rgba(125, 211, 252, 0.1);
+    --st-selected-bg: rgba(14, 165, 233, 0.16);
+    --st-selected-hover-bg: rgba(14, 165, 233, 0.26);
+    @apply ml-auto shrink-0;
+  }
+
+  .mf-progress-chart-range-control .st-segmented-control-option:focus-visible {
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.45);
+  }
+
+  /*
+   * Streamlit st.segmented_control (multi) structure,
+   * tinted to yorawealth emerald/slate palette.
+   */
+  .st-segmented-control {
+    --st-primary: rgb(110 231 183); /* emerald-300 */
+    --st-border: rgba(148, 163, 184, 0.35);
+    --st-bg: transparent;
+    --st-text: rgba(203, 213, 225, 0.9);
+    --st-hover-bg: rgba(148, 163, 184, 0.12);
+    --st-selected-bg: rgba(16, 185, 129, 0.14);
+    --st-selected-hover-bg: rgba(16, 185, 129, 0.22);
+    --st-border-width: 1px;
+    --st-radius: 0.375rem;
+    @apply inline-flex max-w-full items-stretch overflow-x-auto;
+  }
+
+  .st-segmented-control-option {
+    position: relative;
+    z-index: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.625rem;
+    min-height: 1.625rem;
+    max-width: 100%;
+    margin-right: calc(var(--st-border-width) * -1);
+    padding: 0.0625rem 0.7rem;
+    border: var(--st-border-width) solid var(--st-border);
+    border-radius: 0;
+    background: var(--st-bg);
+    color: var(--st-text);
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease;
+  }
+
+  .st-segmented-control-option:first-child {
+    border-top-left-radius: var(--st-radius);
+    border-bottom-left-radius: var(--st-radius);
+  }
+
+  .st-segmented-control-option:last-child {
+    margin-right: 0;
+    border-top-right-radius: var(--st-radius);
+    border-bottom-right-radius: var(--st-radius);
+  }
+
+  .st-segmented-control-option:hover,
+  .st-segmented-control-option:focus-visible {
+    z-index: 2;
+    background: var(--st-hover-bg);
+    outline: none;
+  }
+
+  .st-segmented-control-option:focus-visible {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
+  }
+
+  /* Border ownership: selected owns shared edges */
+  .st-segmented-control-option[data-selected] + .st-segmented-control-option {
+    border-left-color: transparent;
+  }
+
+  .st-segmented-control-option:not([data-selected]):has(
+      + .st-segmented-control-option[data-selected]
+    ) {
+    border-right-color: transparent;
+  }
+
+  /* Border ownership: hovered owns shared edges with neutral neighbors */
+  .st-segmented-control-option:not([data-selected]):hover
+    + .st-segmented-control-option:not([data-selected]):not(:hover) {
+    border-left-color: transparent;
+  }
+
+  .st-segmented-control-option:not([data-selected]):not(:hover):has(
+      + .st-segmented-control-option:not([data-selected]):hover
+    ) {
+    border-right-color: transparent;
+  }
+
+  .st-segmented-control-option[data-selected] {
+    z-index: 1;
+    background: var(--st-selected-bg);
+    border-color: var(--st-primary);
+    color: var(--st-primary);
+  }
+
+  .st-segmented-control-option[data-selected]:hover,
+  .st-segmented-control-option[data-selected]:focus-visible {
+    z-index: 2;
+    background: var(--st-selected-hover-bg);
+    border-color: var(--st-primary);
+    color: var(--st-primary);
+  }
+
+  .mf-progress-chart-tabpanel {
+    @apply min-h-[220px];
+  }
+
+  .mf-progress-chart-skeleton {
+    @apply min-h-[220px];
+  }
+
+  .mf-progress-chart-header {
+    @apply mb-1 flex min-h-[1.125rem] items-center justify-between gap-3;
+  }
+
+  .mf-progress-chart-legend {
+    @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400;
+  }
+
+  .mf-progress-chart-legend-item {
+    @apply inline-flex items-center gap-1.5;
+  }
+
+  .mf-progress-chart-legend-swatch {
+    @apply inline-block h-0.5 w-4 rounded-full;
+  }
+
+  .mf-progress-chart-line {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .mf-progress-chart-line-invested {
+    @apply stroke-slate-400;
+  }
+
+  .mf-progress-chart-line-value {
+    @apply stroke-emerald-300;
+  }
+
+  .mf-progress-chart-line-pl {
+    @apply stroke-amber-300;
+  }
+
+  .mf-progress-chart-point {
+    stroke-width: 1;
+  }
+
+  .mf-progress-chart-point-invested {
+    @apply fill-slate-400 stroke-slate-950;
+  }
+
+  .mf-progress-chart-point-value {
+    @apply fill-emerald-300 stroke-emerald-950;
+  }
+
+  .mf-progress-chart-point-pl {
+    @apply fill-amber-300 stroke-amber-950;
+  }
+
+  .mf-progress-chart-plot {
+    @apply relative;
+  }
+
+  .mf-progress-chart-canvas {
+    @apply relative;
+  }
+
+  .mf-progress-chart-ohlc {
+    @apply flex shrink-0 flex-wrap items-center justify-end gap-x-1.5 gap-y-0.5 text-right text-[11px] leading-none text-slate-400;
+  }
+
+  .mf-progress-chart-ohlc-month {
+    @apply font-medium text-slate-300;
+  }
+
+  .mf-progress-chart-ohlc-sep {
+    @apply text-slate-600;
+  }
+
+  .mf-progress-chart-ohlc-item {
+    @apply inline-flex items-baseline gap-1 whitespace-nowrap;
+  }
+
+  .mf-progress-chart-ohlc-label {
+    @apply text-[10px] font-medium uppercase tracking-wide text-slate-500;
+  }
+
+  .mf-progress-chart-ohlc-value {
+    @apply tabular-nums font-semibold;
+  }
+
+  .mf-progress-chart-ohlc-value-invested {
+    @apply text-slate-300;
+  }
+
+  .mf-progress-chart-ohlc-value-current {
+    @apply text-emerald-300;
+  }
+
+  .mf-progress-chart-hover-line {
+    @apply stroke-slate-400/60;
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    pointer-events: none;
+  }
+
+  .mf-progress-chart-point-active {
+    stroke-width: 1.5;
+  }
+
   .mf-fund-name-sm {
     @apply text-xs;
   }

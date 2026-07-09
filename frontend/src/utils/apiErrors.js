@@ -2,6 +2,9 @@ export function getApiErrorMessage(error, fallback) {
   const detail = error?.response?.data?.detail
 
   if (typeof detail === 'string') {
+    if (detail === 'Not Found' || detail === 'Internal Server Error') {
+      return fallback
+    }
     return detail
   }
 
