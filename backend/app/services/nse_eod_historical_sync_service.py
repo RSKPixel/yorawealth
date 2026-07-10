@@ -106,14 +106,32 @@ class NseEodHistoricalSyncService:
         if not symbols or from_date > to_date:
             return []
 
-        period_days = (to_date - from_date).days + 1
-        result = self.sync_symbols(
-            sorted(normalize_historical_symbol(symbol) for symbol in symbols),
-            period_days=period_days,
-            from_date=from_date,
-            to_date=to_date,
-        )
-        return result["errors"][:8]
+        errors: list[str] = []
+        for symbol in sorted(normalize_historical_symbol(value) for value in symbols):
+            earliest = self.repository.get_earliest_date(symbol)
+            if earliest is None or earliest > from_date:
+                result = self.sync_symbols(
+                    [symbol],
+                    from_date=from_date,
+                    to_date=to_date,
+                )
+                errors.extend(result["errors"])
+                continue
+
+            latest_rows = self.repository.list_by_symbol(symbol, to_date, to_date)
+            needs_refresh = not latest_rows or latest_rows[-1].trade_date < to_date
+            if not needs_refresh:
+                continue
+
+            refresh_from = max(from_date, earliest)
+            result = self.sync_symbols(
+                [symbol],
+                from_date=refresh_from,
+                to_date=to_date,
+            )
+            errors.extend(result["errors"])
+
+        return errors[:8]
 
     def ensure_history_for_dates(
         self,

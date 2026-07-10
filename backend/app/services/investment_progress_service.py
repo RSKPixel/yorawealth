@@ -23,8 +23,10 @@ from app.repositories.ppf_repository import PpfTransactionRepository
 from app.repositories.stock_historical_repository import StockHistoricalRepository
 from app.repositories.stock_repository import StockRepository
 from app.repositories.stock_transaction_repository import StockTransactionRepository
+from app.services.amfi_historical_sync_service import AmfiHistoricalSyncService
 from app.services.amfi_lookup import AmfiFundInfo, fetch_amfi_index, lookup_isin
 from app.services.nse_eod_historical_sync_service import NseEodHistoricalSyncService
+from app.services.nse_index_historical_client import NIFTY_50_SYMBOL
 from app.services.portfolio_holdings_service import PortfolioHoldingsService
 from app.services.portfolio_returns_service import PortfolioReturnsService
 from app.services.stock_holdings_service import (
@@ -39,9 +41,11 @@ from app.services.stock_returns_service import (
     StockReturnsService,
     resolve_stock_valuation_date,
 )
+from app.services.stock_asset_class import classify_stock
 from app.services.stock_trade_types import BUY_LIKE_TRADE_TYPES, SELL_TRADE_TYPES
 
 CHART_START_DATE = date(2022, 1, 1)
+ASSET_CLASSES = ("Equity", "Debt", "Gold")
 
 
 @dataclass
@@ -71,12 +75,21 @@ class PpfAccountState:
 
 
 @dataclass
+class IndexBenchmarkPoint:
+    month: str
+    close: float
+
+
+@dataclass
 class InvestmentProgressPoint:
     month: str
     invested_value: float
     current_value: float
     pl: float
     plp: float
+    equity_value: float = 0.0
+    debt_value: float = 0.0
+    gold_value: float = 0.0
 
 
 class HistoricalPriceLookup:
@@ -166,6 +179,15 @@ def _iter_month_ends(start_date: date, end_date: date) -> list[date]:
             current = _month_end(current.year, current.month + 1)
 
     return month_ends
+
+
+def build_nifty50_month_end_series(
+    repository: IndexHistoricalRepository,
+    to_date: date,
+) -> list[IndexBenchmarkPoint]:
+    from app.services.benchmark_series_service import build_index_benchmark_series
+
+    return build_index_benchmark_series(repository, NIFTY_50_SYMBOL, to_date)
 
 
 def _mf_key(folio: str, isin: str) -> tuple[str, str]:
@@ -315,10 +337,66 @@ def _stock_total_quantity(state: StockHoldingState) -> Decimal:
     return sum((lot.quantity for lot in state.lots), Decimal("0"))
 
 
+def _normalize_asset_class(value: Optional[str]) -> str:
+    if not value:
+        return "Equity"
+
+    normalized = value.strip().title()
+    if normalized in ASSET_CLASSES:
+        return normalized
+
+    return "Equity"
+
+
+def _resolve_mf_asset_class(isin: str, amfi_index: dict[str, AmfiFundInfo]) -> str:
+    info = lookup_isin(isin, amfi_index)
+    if info and info.asset_class:
+        return _normalize_asset_class(info.asset_class)
+    return "Equity"
+
+
+def _add_asset_class_value(
+    totals: dict[str, Decimal],
+    asset_class: str,
+    amount: Decimal,
+) -> None:
+    normalized = _normalize_asset_class(asset_class)
+    totals[normalized] += amount
+
+
+def _asset_class_values_from_totals(
+    totals: dict[str, Decimal],
+) -> tuple[Decimal, Decimal, Decimal]:
+    return totals["Equity"], totals["Debt"], totals["Gold"]
+
+
+def _empty_asset_class_totals() -> dict[str, Decimal]:
+    return {name: Decimal("0") for name in ASSET_CLASSES}
+
+
+def _sum_asset_class_from_rows(
+    rows,
+    *,
+    value_attr: str = "current_value",
+    class_attr: str = "asset_class",
+) -> tuple[Decimal, Decimal, Decimal]:
+    totals = _empty_asset_class_totals()
+    for row in rows:
+        _add_asset_class_value(
+            totals,
+            getattr(row, class_attr),
+            Decimal(str(getattr(row, value_attr))),
+        )
+    return _asset_class_values_from_totals(totals)
+
+
 def _make_point(
     month_end: date,
     invested_value: Decimal,
     current_value: Decimal,
+    equity_value: Decimal = Decimal("0"),
+    debt_value: Decimal = Decimal("0"),
+    gold_value: Decimal = Decimal("0"),
 ) -> InvestmentProgressPoint:
     invested_value = invested_value.quantize(Decimal("0.01"))
     current_value = current_value.quantize(Decimal("0.01"))
@@ -339,6 +417,9 @@ def _make_point(
         current_value=float(current_value),
         pl=float(pl),
         plp=float(plp),
+        equity_value=float(equity_value.quantize(Decimal("0.01"))),
+        debt_value=float(debt_value.quantize(Decimal("0.01"))),
+        gold_value=float(gold_value.quantize(Decimal("0.01"))),
     )
 
 
@@ -430,6 +511,7 @@ def compute_investment_progress(
 
         mf_invested = Decimal("0")
         mf_current = Decimal("0")
+        mf_asset_totals = _empty_asset_class_totals()
         for (_folio, isin), state in active_mf.items():
             units = _mf_total_units(state)
             invested = _mf_invested_amount(state)
@@ -445,9 +527,15 @@ def compute_investment_progress(
             current = (units * nav).quantize(Decimal("0.01"))
             mf_invested += invested
             mf_current += current
+            _add_asset_class_value(
+                mf_asset_totals,
+                _resolve_mf_asset_class(isin, amfi_index),
+                current,
+            )
 
         stock_invested = Decimal("0")
         stock_current = Decimal("0")
+        stock_asset_totals = _empty_asset_class_totals()
         for symbol, state in active_stocks.items():
             quantity = _stock_total_quantity(state)
             invested = _stock_invested_amount(state)
@@ -462,20 +550,51 @@ def compute_investment_progress(
             current = (quantity * close).quantize(Decimal("0.01"))
             stock_invested += invested
             stock_current += current
+            _add_asset_class_value(
+                stock_asset_totals,
+                classify_stock(symbol),
+                current,
+            )
 
         ppf_invested = Decimal("0")
         ppf_current = Decimal("0")
+        ppf_asset_totals = _empty_asset_class_totals()
         for state in ppf_states.values():
             ppf_invested += state.deposited - state.withdrawn
             ppf_current += state.balance
+            _add_asset_class_value(ppf_asset_totals, "Debt", state.balance)
 
-        for bucket, invested, current, enabled in (
-            (mf_points, mf_invested, mf_current, has_mf),
-            (stock_points, stock_invested, stock_current, has_stocks),
-            (ppf_points, ppf_invested, ppf_current, has_ppf),
+        mf_equity, mf_debt, mf_gold = _asset_class_values_from_totals(mf_asset_totals)
+        stock_equity, stock_debt, stock_gold = _asset_class_values_from_totals(
+            stock_asset_totals
+        )
+        ppf_equity, ppf_debt, ppf_gold = _asset_class_values_from_totals(ppf_asset_totals)
+
+        for bucket, invested, current, equity, debt, gold, enabled in (
+            (mf_points, mf_invested, mf_current, mf_equity, mf_debt, mf_gold, has_mf),
+            (
+                stock_points,
+                stock_invested,
+                stock_current,
+                stock_equity,
+                stock_debt,
+                stock_gold,
+                has_stocks,
+            ),
+            (
+                ppf_points,
+                ppf_invested,
+                ppf_current,
+                ppf_equity,
+                ppf_debt,
+                ppf_gold,
+                has_ppf,
+            ),
         ):
             if enabled:
-                bucket.append(_make_point(month_end, invested, current))
+                bucket.append(
+                    _make_point(month_end, invested, current, equity, debt, gold)
+                )
 
     return {
         "mf": mf_points,
@@ -531,7 +650,15 @@ class InvestmentProgressService:
         rows = self.mf_returns_service.enrich_holdings(records, mf_transactions)
         invested = Decimal(str(round(sum(row.invested_amount for row in rows), 2)))
         current = Decimal(str(round(sum(row.current_value for row in rows), 2)))
-        point = _make_point(_month_end(today.year, today.month), invested, current)
+        equity, debt, gold = _sum_asset_class_from_rows(rows)
+        point = _make_point(
+            _month_end(today.year, today.month),
+            invested,
+            current,
+            equity,
+            debt,
+            gold,
+        )
         mf_points[-1] = point
 
     def _align_current_stocks_point(
@@ -569,7 +696,15 @@ class InvestmentProgressService:
         )
         invested = Decimal(str(round(sum(row.invested_amount for row in rows), 2)))
         current = Decimal(str(round(sum(row.current_value for row in rows), 2)))
-        point = _make_point(_month_end(today.year, today.month), invested, current)
+        equity, debt, gold = _sum_asset_class_from_rows(rows)
+        point = _make_point(
+            _month_end(today.year, today.month),
+            invested,
+            current,
+            equity,
+            debt,
+            gold,
+        )
         stock_points[-1] = point
 
     def _ensure_stock_history(
@@ -603,7 +738,60 @@ class InvestmentProgressService:
             valuation_end,
         )
 
-    def build_progress(self, client_pan: str) -> dict[str, list[InvestmentProgressPoint]]:
+    def _ensure_etf_benchmark_history(self, valuation_end: date) -> None:
+        from app.services.benchmark_series_service import PRESET_ETF_BENCHMARKS
+
+        symbols = {symbol for symbol, _ in PRESET_ETF_BENCHMARKS}
+        NseEodHistoricalSyncService(self.db).ensure_history(
+            symbols,
+            CHART_START_DATE,
+            valuation_end,
+        )
+
+    def _ensure_mf_benchmark_history(
+        self,
+        holdings: list,
+        isin_scheme_map: dict[str, str],
+        amfi_index: dict[str, AmfiFundInfo],
+        valuation_end: date,
+    ) -> None:
+        if not holdings:
+            return
+
+        targets: list[dict] = []
+        seen_isins: set[str] = set()
+        for holding in holdings:
+            isin = holding.isin.upper().strip()
+            if not isin or isin in seen_isins:
+                continue
+            seen_isins.add(isin)
+
+            scheme_code = isin_scheme_map.get(isin)
+            if not scheme_code:
+                info = lookup_isin(isin, amfi_index)
+                if info and info.scheme_code:
+                    scheme_code = info.scheme_code
+            if not scheme_code:
+                continue
+
+            targets.append(
+                {
+                    "scheme_code": scheme_code,
+                    "isin": isin,
+                    "scheme_name": holding.fund_name or isin,
+                }
+            )
+
+        if not targets:
+            return
+
+        AmfiHistoricalSyncService(self.db).ensure_benchmark_history(
+            targets,
+            CHART_START_DATE,
+            valuation_end,
+        )
+
+    def build_progress(self, client_pan: str) -> dict:
         mf_transactions = (
             self.mf_transaction_repository.list_by_client_pan_chronological(
                 client_pan
@@ -630,6 +818,7 @@ class InvestmentProgressService:
 
         scheme_codes = list(set(isin_scheme_map.values()))
         symbols = list({txn.symbol.upper() for txn in stock_transactions})
+
         self._ensure_stock_history(stock_transactions, valuation_end)
         eod_map = self.nse_eod_repository.map_by_symbols(symbols)
         eod_closes = {
@@ -659,3 +848,39 @@ class InvestmentProgressService:
             stock_transactions,
         )
         return progress
+
+    def build_benchmarks(self, client_pan: str) -> list:
+        valuation_end = date.today()
+        amfi_index = fetch_amfi_index()
+        mf_transactions = (
+            self.mf_transaction_repository.list_by_client_pan_chronological(
+                client_pan
+            )
+        )
+        isin_scheme_map: dict[str, str] = {}
+        if mf_transactions:
+            isin_scheme_map = _build_isin_scheme_map(
+                mf_transactions,
+                amfi_index,
+            )
+
+        holdings = self.holding_repository.list_by_client_pan(client_pan)
+        self._ensure_etf_benchmark_history(valuation_end)
+        if holdings:
+            self._ensure_mf_benchmark_history(
+                holdings,
+                isin_scheme_map,
+                amfi_index,
+                valuation_end,
+            )
+
+        from app.services.benchmark_series_service import build_portfolio_benchmark_series
+
+        return build_portfolio_benchmark_series(
+            stock_repository=self.stock_historical_repository,
+            mf_repository=self.mf_historical_repository,
+            holdings=holdings,
+            amfi_index=amfi_index,
+            isin_scheme_map=isin_scheme_map,
+            to_date=valuation_end,
+        )

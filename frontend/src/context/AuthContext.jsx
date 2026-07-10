@@ -13,9 +13,14 @@ import {
   login as loginRequest,
   logoutRequest,
 } from '../api/auth'
+import { triggerDailyMarketDataSync } from '../api/marketData'
 import { clearLegacyTokenStorage, getUser } from '../utils/userStorage'
 
 const AuthContext = createContext(null)
+
+function scheduleDailyMarketDataSync() {
+  triggerDailyMarketDataSync()
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getUser())
@@ -30,6 +35,7 @@ export function AuthProvider({ children }) {
         const currentUser = await fetchCurrentUser()
         applyAuthSession({ user: currentUser })
         setUser(currentUser)
+        scheduleDailyMarketDataSync()
       } catch {
         clearAuthSession()
         setUser(null)
@@ -47,6 +53,7 @@ export function AuthProvider({ children }) {
       const data = await loginRequest(clientPan, password)
       applyAuthSession(data)
       setUser(data.user)
+      scheduleDailyMarketDataSync()
       return data
     } finally {
       setIsLoading(false)

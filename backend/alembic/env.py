@@ -12,6 +12,7 @@ from app.models import (  # noqa: F401
     BankAccount,
     BankTransaction,
     CapitalGain,
+    MarketDataSyncLog,
     MutualFundHistorical,
     MutualFundTransaction,
     NseEod,

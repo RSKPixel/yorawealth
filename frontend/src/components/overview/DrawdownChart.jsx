@@ -1,65 +1,14 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useChartWidth } from '../../hooks/useChartWidth'
 import { formatMonthLabel } from '../../utils/financialYear'
-import { formatTradeValue, formatTradeValueCompact } from '../../utils/mutualFundFormat'
+import { formatPctSigned } from '../../utils/mutualFundFormat'
 
 const MIN_CHART_HEIGHT = 200
 const DEFAULT_HEADER_HEIGHT = 18
 
-const SERIES = [
-  {
-    key: 'invested_value',
-    label: 'Invested',
-    className: 'mf-progress-chart-line-invested',
-    pointClassName: 'mf-progress-chart-point-invested',
-    ohlcClassName: 'mf-progress-chart-ohlc-value-invested',
-    ohlcLabel: 'Inv',
-  },
-  {
-    key: 'current_value',
-    label: 'Current value',
-    className: 'mf-progress-chart-line-value',
-    pointClassName: 'mf-progress-chart-point-value',
-    ohlcClassName: 'mf-progress-chart-ohlc-value-current',
-    ohlcLabel: 'Val',
-  },
-]
-
-const BENCHMARK_SERIES_BASE = {
-  key: 'benchmark_value',
-  className: 'mf-progress-chart-line-benchmark',
-  pointClassName: 'mf-progress-chart-point-benchmark',
-  ohlcClassName: 'mf-progress-chart-ohlc-value-benchmark',
-}
-
-function shortBenchmarkLabel(label) {
-  if (!label) {
-    return 'Bench'
-  }
-
-  const firstWord = label.trim().split(/\s+/)[0]
-  if (firstWord.length <= 8) {
-    return firstWord
-  }
-
-  return `${firstWord.slice(0, 8)}…`
-}
-
-function getExtent(values) {
-  if (!values.length) return { min: 0, max: 0 }
-  let min = values[0]
-  let max = values[0]
-  for (const value of values) {
-    if (value < min) min = value
-    if (value > max) max = value
-  }
-  return { min, max }
-}
-
 function buildTicks(min, max, count = 3) {
   if (min === max) {
-    if (min === 0) return [0]
-    return [min, 0].sort((a, b) => a - b)
+    return [max]
   }
 
   const span = max - min
@@ -71,27 +20,7 @@ function buildTicks(min, max, count = 3) {
   return ticks
 }
 
-function buildSeriesPath(points, key, xForIndex, yForValue, innerWidth, innerHeight) {
-  let pathD = ''
-  let started = false
-
-  points.forEach((point, index) => {
-    const value = point[key]
-    if (!Number.isFinite(value)) {
-      started = false
-      return
-    }
-
-    const x = xForIndex(index, innerWidth)
-    const y = yForValue(value, innerHeight)
-    pathD += `${started ? 'L' : 'M'} ${x} ${y} `
-    started = true
-  })
-
-  return pathD.trim()
-}
-
-export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchmark' }) {
+export function DrawdownLineChart({ points, plotHeight }) {
   const headerRef = useRef(null)
   const canvasRef = useRef(null)
   const width = useChartWidth(canvasRef)
@@ -111,32 +40,9 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
 
   const seriesPoints = useMemo(
     () =>
-      points.filter(
-        (point) =>
-          Number.isFinite(point.invested_value) &&
-          Number.isFinite(point.current_value),
-      ),
+      points.filter((point) => Number.isFinite(point.drawdown_pct)),
     [points],
   )
-
-  const activeSeries = useMemo(() => {
-    const hasBenchmark = seriesPoints.some(
-      (point) =>
-        Number.isFinite(point.benchmark_value) && point.benchmark_value > 0,
-    )
-    if (!hasBenchmark) {
-      return SERIES
-    }
-
-    return [
-      ...SERIES,
-      {
-        ...BENCHMARK_SERIES_BASE,
-        label: benchmarkLabel,
-        ohlcLabel: shortBenchmarkLabel(benchmarkLabel),
-      },
-    ]
-  }, [benchmarkLabel, seriesPoints])
 
   useEffect(() => {
     setHoverIndex(null)
@@ -145,25 +51,18 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
   if (!seriesPoints.length) {
     return (
       <div className="mf-net-chart-empty">
-        Select Mutual Fund, Stocks, or PPF to see progress.
+        Select Mutual Fund, Stocks, or PPF to see drawdown.
       </div>
     )
   }
 
-  const allValues = seriesPoints.flatMap((point) => {
-    const values = [point.invested_value, point.current_value]
-    if (Number.isFinite(point.benchmark_value) && point.benchmark_value > 0) {
-      values.push(point.benchmark_value)
-    }
-    return values
-  })
-  const { min, max } = getExtent(allValues)
-  const paddedSpan = max === min ? Math.abs(max || 1) : max - min
-  const padding = paddedSpan * 0.08 || 1
-  const yMin = Math.max(0, min - padding)
-  const yMax = max + padding
+  const drawdownValues = seriesPoints.map((point) => point.drawdown_pct)
+  const minDrawdown = Math.min(...drawdownValues, 0)
+  const padding = Math.abs(minDrawdown) * 0.08 || 1
+  const yMin = minDrawdown - padding
+  const yMax = 0
 
-  const padLeft = 72
+  const padLeft = 56
   const padRight = 16
   const padTop = 10
   const padBottom = 28
@@ -206,7 +105,8 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
   const height = canvasHeight
   const innerWidth = width - padLeft - padRight
   const innerHeight = height - padTop - padBottom
-  const yTicks = buildTicks(yMin, yMax, 3).filter((tick) => tick >= 0)
+  const yTicks = buildTicks(yMin, yMax, 3)
+  const zeroY = yForValue(0, innerHeight)
   const hoverPoint =
     hoverIndex != null && hoverIndex >= 0 && hoverIndex < seriesPoints.length
       ? seriesPoints[hoverIndex]
@@ -247,6 +147,14 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
     setHoverIndex(null)
   }
 
+  const pathD = seriesPoints
+    .map((point, index) => {
+      const x = xForIndex(index, innerWidth)
+      const y = yForValue(point.drawdown_pct, innerHeight)
+      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
+    })
+    .join(' ')
+
   return (
     <div
       className="mf-net-chart mf-progress-chart-plot"
@@ -254,12 +162,10 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
     >
       <div ref={headerRef} className="mf-progress-chart-header">
         <div className="mf-progress-chart-legend" aria-hidden="true">
-          {activeSeries.map((series) => (
-            <span key={series.key} className="mf-progress-chart-legend-item">
-              <span className={`mf-progress-chart-legend-swatch ${series.className}`} />
-              {series.label}
-            </span>
-          ))}
+          <span className="mf-progress-chart-legend-item">
+            <span className="mf-progress-chart-legend-swatch mf-drawdown-chart-legend-swatch" />
+            Drawdown
+          </span>
         </div>
 
         {displayPoint && (
@@ -267,26 +173,27 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
             <span className="mf-progress-chart-ohlc-month">
               {formatMonthLabel(displayPoint.month)}
             </span>
-            {activeSeries.map((series) => {
-              const value = displayPoint[series.key]
-              if (!Number.isFinite(value)) {
-                return null
-              }
-
-              return (
-                <span key={series.key} className="mf-progress-chart-ohlc-item">
-                  <span className="mf-progress-chart-ohlc-sep">·</span>
-                  <span className="mf-progress-chart-ohlc-label">
-                    {series.ohlcLabel}
-                  </span>
-                  <span
-                    className={`mf-progress-chart-ohlc-value ${series.ohlcClassName}`}
-                  >
-                    {formatTradeValue(value)}
-                  </span>
-                </span>
-              )
-            })}
+            <span className="mf-progress-chart-ohlc-sep">·</span>
+            <span className="mf-progress-chart-ohlc-item">
+              <span className="mf-progress-chart-ohlc-label">P/L%</span>
+              <span className="mf-progress-chart-ohlc-value">
+                {formatPctSigned(displayPoint.profit_pct)}
+              </span>
+            </span>
+            <span className="mf-progress-chart-ohlc-sep">·</span>
+            <span className="mf-progress-chart-ohlc-item">
+              <span className="mf-progress-chart-ohlc-label">Peak</span>
+              <span className="mf-progress-chart-ohlc-value">
+                {formatPctSigned(displayPoint.peak_profit_pct)}
+              </span>
+            </span>
+            <span className="mf-progress-chart-ohlc-sep">·</span>
+            <span className="mf-progress-chart-ohlc-item">
+              <span className="mf-progress-chart-ohlc-label">DD</span>
+              <span className="mf-progress-chart-ohlc-value mf-drawdown-chart-ohlc-value">
+                {formatPctSigned(displayPoint.drawdown_pct)}
+              </span>
+            </span>
           </div>
         )}
       </div>
@@ -303,7 +210,7 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
           width={width}
           height={height}
           role="img"
-          aria-label="Investment progress over time"
+          aria-label="Profit drawdown over time"
         >
           <line
             x1={padLeft}
@@ -337,33 +244,21 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
                   textAnchor="end"
                   className="mf-net-chart-axis-label"
                 >
-                  {formatTradeValueCompact(tick)}
+                  {formatPctSigned(tick)}
                 </text>
               </g>
             )
           })}
 
-          {activeSeries.map((series) => {
-            const pathD = buildSeriesPath(
-              seriesPoints,
-              series.key,
-              xForIndex,
-              yForValue,
-              innerWidth,
-              innerHeight,
-            )
-            if (!pathD) {
-              return null
-            }
+          <line
+            x1={padLeft}
+            y1={zeroY}
+            x2={padLeft + innerWidth}
+            y2={zeroY}
+            className="mf-drawdown-chart-zero-line"
+          />
 
-            return (
-              <path
-                key={series.key}
-                d={pathD}
-                className={`mf-progress-chart-line ${series.className}`}
-              />
-            )
-          })}
+          <path d={pathD} className="mf-progress-chart-line mf-drawdown-chart-line" />
 
           {hoverPoint && hoverX != null && (
             <line
@@ -377,29 +272,18 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
 
           {seriesPoints.map((point, index) => {
             const x = xForIndex(index, innerWidth)
+            const y = yForValue(point.drawdown_pct, innerHeight)
             const isActive = hoverIndex === index
             return (
-              <g key={point.month}>
-                {activeSeries.map((series) => {
-                  const value = point[series.key]
-                  if (!Number.isFinite(value)) {
-                    return null
-                  }
-
-                  const y = yForValue(value, innerHeight)
-                  return (
-                    <circle
-                      key={`${point.month}-${series.key}`}
-                      cx={x}
-                      cy={y}
-                      r={isActive ? 4.5 : 3}
-                      className={`mf-progress-chart-point ${series.pointClassName}${
-                        isActive ? ' mf-progress-chart-point-active' : ''
-                      }`}
-                    />
-                  )
-                })}
-              </g>
+              <circle
+                key={point.month}
+                cx={x}
+                cy={y}
+                r={isActive ? 4.5 : 3}
+                className={`mf-progress-chart-point mf-drawdown-chart-point${
+                  isActive ? ' mf-progress-chart-point-active' : ''
+                }`}
+              />
             )
           })}
 
@@ -423,4 +307,4 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
   )
 }
 
-export default ProgressLineChart
+export default DrawdownLineChart

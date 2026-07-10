@@ -1012,6 +1012,18 @@ body {
     @apply space-y-3;
   }
 
+  .mf-section-portfolio-charts {
+    @apply space-y-2;
+  }
+
+  .mf-portfolio-charts-header {
+    @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-2;
+  }
+
+  .mf-portfolio-charts-header .mf-progress-chart-toolbar {
+    @apply ml-auto flex flex-wrap items-center justify-end gap-1.5;
+  }
+
   .mf-section-header {
     @apply flex items-center gap-2;
   }
@@ -1640,6 +1652,37 @@ body {
     @apply rounded-xl border border-slate-700/50 bg-slate-900/40 p-3;
   }
 
+  .mf-net-chart-wrap--fill {
+    @apply flex flex-col p-2;
+  }
+
+  .mf-net-chart-wrap--fill .mf-progress-chart-tabpanel {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+
+  .mf-net-chart-wrap--fill .mf-progress-chart-plot,
+  .mf-net-chart-wrap--fill .mf-net-chart.mf-progress-chart-plot {
+    @apply flex min-h-0 flex-1 flex-col;
+  }
+
+  .mf-net-chart-wrap--fill .mf-progress-chart-header {
+    @apply shrink-0;
+  }
+
+  .mf-net-chart-wrap--fill .mf-progress-chart-canvas,
+  .mf-net-chart-wrap--fill .mf-net-chart-canvas {
+    @apply min-h-0 flex-1;
+  }
+
+  .mf-net-chart-wrap--fill .mf-progress-chart-skeleton {
+    @apply min-h-0;
+  }
+
+  .mf-net-chart-wrap--fill .mf-net-chart,
+  .mf-net-chart-wrap--fill .mf-net-chart-canvas {
+    min-height: 0;
+  }
+
   .mf-net-chart {
     @apply min-h-[220px] min-w-0 w-full;
   }
@@ -1681,24 +1724,27 @@ body {
     @apply py-6 text-center text-xs text-slate-400;
   }
 
-  .mf-progress-chart-panel {
-    @apply flex flex-col gap-3;
+  .mf-progress-chart-tabpanel {
+    @apply min-h-[220px];
+  }
+
+  .mf-net-chart-wrap--fill .mf-progress-chart-tabpanel {
+    @apply min-h-0;
   }
 
   .mf-progress-chart-toolbar {
-    @apply flex flex-wrap items-center justify-between gap-3;
+    @apply flex flex-wrap items-center gap-1.5;
   }
 
-  .mf-progress-chart-range-control {
-    --st-primary: rgb(125 211 252); /* sky-300 */
-    --st-hover-bg: rgba(125, 211, 252, 0.1);
-    --st-selected-bg: rgba(14, 165, 233, 0.16);
-    --st-selected-hover-bg: rgba(14, 165, 233, 0.26);
-    @apply ml-auto shrink-0;
+  .mf-progress-chart-benchmark-select {
+    @apply max-w-[11rem] rounded-lg border border-slate-600/50 bg-slate-900/60 px-2 py-1 text-[0.6875rem] text-slate-100 outline-none transition focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 disabled:cursor-wait disabled:opacity-60;
   }
 
-  .mf-progress-chart-range-control .st-segmented-control-option:focus-visible {
-    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.45);
+  .mf-portfolio-charts-header .st-segmented-control-option {
+    height: 1.375rem;
+    min-height: 1.375rem;
+    padding: 0 0.45rem;
+    font-size: 0.6875rem;
   }
 
   /*
@@ -1716,6 +1762,34 @@ body {
     --st-border-width: 1px;
     --st-radius: 0.375rem;
     @apply inline-flex max-w-full items-stretch overflow-x-auto;
+  }
+
+  .st-segmented-control.st-segmented-control--chart-type,
+  .st-segmented-control.mf-overview-chart-type-control {
+    --st-primary: rgb(196 181 253); /* violet-300 */
+    --st-hover-bg: rgba(196, 181, 253, 0.12);
+    --st-selected-bg: rgba(139, 92, 246, 0.2);
+    --st-selected-hover-bg: rgba(139, 92, 246, 0.3);
+    @apply shrink-0;
+  }
+
+  .st-segmented-control.mf-overview-chart-type-control
+    .st-segmented-control-option:focus-visible {
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.45);
+  }
+
+  .st-segmented-control.mf-progress-chart-range-control,
+  .st-segmented-control.st-segmented-control--period {
+    --st-primary: rgb(125 211 252); /* sky-300 */
+    --st-hover-bg: rgba(125, 211, 252, 0.1);
+    --st-selected-bg: rgba(14, 165, 233, 0.16);
+    --st-selected-hover-bg: rgba(14, 165, 233, 0.26);
+    @apply shrink-0;
+  }
+
+  .st-segmented-control.mf-progress-chart-range-control
+    .st-segmented-control-option:focus-visible {
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.45);
   }
 
   .st-segmented-control-option {
@@ -1813,11 +1887,11 @@ body {
   }
 
   .mf-progress-chart-header {
-    @apply mb-1 flex min-h-[1.125rem] items-center justify-between gap-3;
+    @apply mb-0.5 flex min-h-4 items-center justify-between gap-2;
   }
 
   .mf-progress-chart-legend {
-    @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400;
+    @apply flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[10px] text-slate-400;
   }
 
   .mf-progress-chart-legend-item {
@@ -1825,7 +1899,19 @@ body {
   }
 
   .mf-progress-chart-legend-swatch {
-    @apply inline-block h-0.5 w-4 rounded-full;
+    @apply inline-block h-1 w-4 shrink-0 rounded-full;
+  }
+
+  .mf-progress-chart-legend-swatch.mf-progress-chart-line-invested {
+    @apply bg-slate-400;
+  }
+
+  .mf-progress-chart-legend-swatch.mf-progress-chart-line-value {
+    @apply bg-emerald-300;
+  }
+
+  .mf-progress-chart-legend-swatch.mf-progress-chart-line-benchmark {
+    @apply bg-amber-300;
   }
 
   .mf-progress-chart-line {
@@ -1835,10 +1921,18 @@ body {
 
   .mf-progress-chart-line-invested {
     @apply stroke-slate-400;
+    stroke: rgb(148 163 184);
   }
 
   .mf-progress-chart-line-value {
     @apply stroke-emerald-300;
+    stroke: rgb(110 231 183);
+  }
+
+  .mf-progress-chart-line-benchmark {
+    @apply stroke-amber-300;
+    stroke: rgb(252 211 77);
+    stroke-dasharray: 6 4;
   }
 
   .mf-progress-chart-line-pl {
@@ -1855,6 +1949,10 @@ body {
 
   .mf-progress-chart-point-value {
     @apply fill-emerald-300 stroke-emerald-950;
+  }
+
+  .mf-progress-chart-point-benchmark {
+    @apply fill-amber-300 stroke-amber-950;
   }
 
   .mf-progress-chart-point-pl {
@@ -1901,6 +1999,10 @@ body {
     @apply text-emerald-300;
   }
 
+  .mf-progress-chart-ohlc-value-benchmark {
+    @apply text-amber-300;
+  }
+
   .mf-progress-chart-hover-line {
     @apply stroke-slate-400/60;
     stroke-width: 1;
@@ -1910,6 +2012,103 @@ body {
 
   .mf-progress-chart-point-active {
     stroke-width: 1.5;
+  }
+
+  .mf-drawdown-chart-line {
+    @apply stroke-rose-400;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .mf-drawdown-chart-point {
+    @apply fill-rose-400 stroke-rose-300;
+    stroke-width: 1;
+  }
+
+  .mf-drawdown-chart-zero-line {
+    @apply stroke-slate-500/70;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  .mf-drawdown-chart-ohlc-value {
+    @apply text-rose-300;
+  }
+
+  .mf-drawdown-chart-legend-swatch {
+    @apply bg-rose-400;
+  }
+
+  .mf-profit-loss-pct-chart-line {
+    @apply stroke-amber-300;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .mf-profit-loss-pct-chart-point {
+    @apply fill-amber-300 stroke-amber-950;
+    stroke-width: 1;
+  }
+
+  .mf-profit-loss-pct-chart-legend-swatch {
+    @apply bg-amber-300;
+  }
+
+  .mf-asset-mix-chart-line-equity {
+    @apply stroke-violet-300;
+    stroke: rgb(196 181 253);
+  }
+
+  .mf-asset-mix-chart-line-debt {
+    @apply stroke-sky-300;
+    stroke: rgb(125 211 252);
+  }
+
+  .mf-asset-mix-chart-line-gold {
+    @apply stroke-amber-300;
+    stroke: rgb(252 211 77);
+  }
+
+  .mf-progress-chart-legend-swatch.mf-asset-mix-chart-line-equity {
+    @apply bg-violet-300;
+  }
+
+  .mf-progress-chart-legend-swatch.mf-asset-mix-chart-line-debt {
+    @apply bg-sky-300;
+  }
+
+  .mf-progress-chart-legend-swatch.mf-asset-mix-chart-line-gold {
+    @apply bg-amber-300;
+  }
+
+  .mf-asset-mix-chart-point-equity {
+    @apply fill-violet-300 stroke-violet-950;
+  }
+
+  .mf-asset-mix-chart-point-debt {
+    @apply fill-sky-300 stroke-sky-950;
+  }
+
+  .mf-asset-mix-chart-point-gold {
+    @apply fill-amber-300 stroke-amber-950;
+  }
+
+  .mf-asset-mix-chart-ohlc-equity {
+    @apply text-violet-200;
+  }
+
+  .mf-asset-mix-chart-ohlc-debt {
+    @apply text-sky-200;
+  }
+
+  .mf-asset-mix-chart-ohlc-gold {
+    @apply text-amber-200;
+  }
+
+  .mf-metric-pct-chart-zero-line {
+    @apply stroke-slate-500/70;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
   }
 
   .mf-fund-name-sm {
@@ -2663,6 +2862,76 @@ body {
 
   .settings-banks-delete-btn {
     @apply text-rose-300 hover:text-rose-200;
+  }
+
+  .settings-log-tab {
+    @apply space-y-4;
+  }
+
+  .settings-log-summary {
+    @apply flex flex-col gap-3 rounded-lg border border-slate-600/40 bg-slate-900/40 p-4 sm:flex-row sm:items-center sm:justify-between;
+  }
+
+  .settings-log-summary-copy {
+    @apply min-w-0;
+  }
+
+  .settings-log-status {
+    @apply inline-flex w-fit rounded-full px-2.5 py-1 text-[0.6875rem] font-medium uppercase tracking-wide;
+  }
+
+  .settings-log-status-running {
+    @apply bg-sky-500/15 text-sky-200;
+  }
+
+  .settings-log-status-success {
+    @apply bg-emerald-500/15 text-emerald-200;
+  }
+
+  .settings-log-status-partial {
+    @apply bg-amber-500/15 text-amber-200;
+  }
+
+  .settings-log-status-failed {
+    @apply bg-rose-500/15 text-rose-200;
+  }
+
+  .settings-log-status-skipped {
+    @apply bg-slate-500/15 text-slate-300;
+  }
+
+  .settings-log-loading,
+  .settings-log-empty {
+    @apply rounded-lg border border-dashed border-slate-600/40 px-4 py-8 text-center text-sm text-slate-400;
+  }
+
+  .settings-log-table-wrap {
+    @apply overflow-x-auto rounded-lg border border-slate-600/40;
+  }
+
+  .settings-log-table {
+    @apply w-full min-w-[40rem] text-left text-xs text-slate-200;
+  }
+
+  .settings-log-table thead {
+    @apply bg-slate-900/70 text-slate-400;
+  }
+
+  .settings-log-table th,
+  .settings-log-table td {
+    @apply px-3 py-2 align-top;
+  }
+
+  .settings-log-table tbody tr {
+    @apply border-t border-slate-700/50;
+  }
+
+  .settings-log-summary-cell {
+    @apply space-y-1;
+  }
+
+  .settings-log-step-summary {
+    @apply block text-[0.6875rem] text-slate-400;
   }
 
   .settings-banks-empty {

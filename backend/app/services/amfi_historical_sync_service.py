@@ -108,6 +108,41 @@ class AmfiHistoricalSyncService:
             "errors": errors,
         }
 
+    def ensure_benchmark_history(
+        self,
+        targets: list[dict],
+        from_date: date,
+        to_date: date,
+    ) -> list[str]:
+        if not targets or from_date > to_date:
+            return []
+
+        errors: list[str] = []
+        for target in targets:
+            scheme_code = target["scheme_code"]
+            isin = target["isin"]
+            fund_name = target["scheme_name"]
+            earliest = self.historical_repository.get_earliest_date(scheme_code)
+            latest = self.historical_repository.get_latest_date(scheme_code)
+            if (
+                earliest is not None
+                and earliest <= from_date
+                and latest is not None
+                and latest >= to_date
+            ):
+                continue
+
+            sync_error = self.nav_sync_service.ensure_history(
+                isin=isin,
+                fund_name=fund_name,
+                from_date=from_date,
+                to_date=to_date,
+            )
+            if sync_error:
+                errors.append(f"{scheme_code} ({isin}): {sync_error}")
+
+        return errors
+
     def _portfolio_isins(self, client_pan: str) -> list[str]:
         transactions = self.transaction_repository.list_by_client_pan(client_pan)
         seen: set[str] = set()

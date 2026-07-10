@@ -26,7 +26,9 @@ function BaseLayout() {
           <ShellSidebar />
 
           <main className="shell-main">
-            <div className={`shell-content${isWidePortfolioPage ? ' shell-content-mf' : ''}`}>
+            <div
+              className={`shell-content${isWidePortfolioPage ? ' shell-content-mf' : ''}`}
+            >
               <Outlet />
             </div>
           </main>

@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -9,15 +9,92 @@ from app.models.user import User
 from app.schemas.market_data import (
     AmfiEodSyncResponse,
     AmfiHistoricalSyncResponse,
+    DailyMarketDataSyncResponse,
+    ManualMarketDataSyncResponse,
+    MarketDataSyncLogResponse,
+    MarketDataSyncLogsResponse,
     NseEodSyncResponse,
     NseHistoricalSyncResponse,
 )
 from app.services.amfi_eod_sync_service import AmfiEodSyncService
 from app.services.amfi_historical_sync_service import AmfiHistoricalSyncService
+from app.services.market_data_sync_service import (
+    MarketDataSyncService,
+    run_daily_sync_background,
+    serialize_sync_log,
+)
 from app.services.nse_eod_historical_sync_service import NseEodHistoricalSyncService
 from app.services.nse_eod_sync_service import NseEodSyncService
 
 router = APIRouter(prefix="/market-data", tags=["market-data"])
+
+
+def _to_log_response(record) -> MarketDataSyncLogResponse:
+    payload = serialize_sync_log(record)
+    return MarketDataSyncLogResponse.model_validate(payload)
+
+
+@router.post("/sync/daily", response_model=DailyMarketDataSyncResponse)
+def sync_daily_market_data(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DailyMarketDataSyncResponse:
+    service = MarketDataSyncService(db)
+    outcome = service.request_daily_sync(
+        user_id=current_user.id,
+        client_pan=current_user.client_pan,
+    )
+
+    if outcome["status"] == "started":
+        background_tasks.add_task(
+            run_daily_sync_background,
+            log_id=outcome["log_id"],
+            user_id=current_user.id,
+            client_pan=current_user.client_pan,
+        )
+
+    return DailyMarketDataSyncResponse(
+        status=outcome["status"],
+        log_id=outcome.get("log_id"),
+        message=outcome["message"],
+    )
+
+
+@router.post("/sync/manual", response_model=ManualMarketDataSyncResponse)
+def sync_manual_market_data(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ManualMarketDataSyncResponse:
+    service = MarketDataSyncService(db)
+    outcome = service.run_manual_sync(
+        user_id=current_user.id,
+        client_pan=current_user.client_pan,
+    )
+    return ManualMarketDataSyncResponse(
+        status=outcome["status"],
+        log_id=outcome["log_id"],
+        message=outcome["message"],
+        details=outcome.get("details"),
+    )
+
+
+@router.get("/sync/logs", response_model=MarketDataSyncLogsResponse)
+def list_market_data_sync_logs(
+    limit: int = Query(50, ge=1, le=100),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> MarketDataSyncLogsResponse:
+    service = MarketDataSyncService(db)
+    outcome = service.list_logs(current_user.id, limit=limit)
+    return MarketDataSyncLogsResponse(
+        logs=[_to_log_response(record) for record in outcome["logs"]],
+        last_daily=(
+            _to_log_response(outcome["last_daily"])
+            if outcome["last_daily"] is not None
+            else None
+        ),
+    )
 
 
 @router.post("/nse/eod/sync", response_model=NseEodSyncResponse)

@@ -177,6 +177,33 @@ class InvestmentProgressServiceTests(unittest.TestCase):
         self.assertEqual(april.invested_value, 60000.0)
         self.assertEqual(april.current_value, 61200.0)
         self.assertEqual(april.pl, 1200.0)
+        self.assertEqual(april.equity_value, 0.0)
+        self.assertEqual(april.debt_value, 61200.0)
+        self.assertEqual(april.gold_value, 0.0)
+
+    def test_stock_points_default_to_equity_asset_class(self) -> None:
+        price_lookup = HistoricalPriceLookup.from_series(
+            stock_series={
+                "RELIANCE": [
+                    (date(2024, 1, 31), Decimal("100")),
+                ]
+            }
+        )
+
+        progress = compute_investment_progress(
+            mf_transactions=[],
+            stock_transactions=[_stock_txn(transaction_date=date(2024, 1, 10))],
+            ppf_transactions=[],
+            price_lookup=price_lookup,
+            isin_scheme_map={},
+            end_date=date(2024, 1, 31),
+        )
+
+        point = progress["stocks"][0]
+        self.assertEqual(point.current_value, 1000.0)
+        self.assertEqual(point.equity_value, 1000.0)
+        self.assertEqual(point.debt_value, 0.0)
+        self.assertEqual(point.gold_value, 0.0)
 
     def test_chart_starts_from_jan_2022(self) -> None:
         scheme_code = "123456"

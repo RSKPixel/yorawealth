@@ -1,21 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
 import {
   fetchPortfolioHoldings as fetchMutualFundHoldings,
 } from '../api/mutualFund'
-import { fetchInvestmentProgress } from '../api/overview'
+import { fetchInvestmentProgress, fetchInvestmentProgressBenchmarks } from '../api/overview'
 import { fetchPpfInvestments } from '../api/ppf'
 import { fetchStockHoldings } from '../api/stocks'
 import OverviewEmptyState from '../components/overview/OverviewEmptyState'
 import OverviewSummaryCards from '../components/overview/OverviewSummaryCards'
 import PortfolioBreakdownStrip from '../components/overview/PortfolioBreakdownStrip'
-import InvestmentProgressChart from '../components/overview/InvestmentProgressChart'
+import OverviewChartsPanel from '../components/overview/OverviewChartsPanel'
+import OverviewChartControls from '../components/overview/OverviewChartControls'
 import PortfolioPageHeader from '../components/layout/PortfolioPageHeader'
-import BootstrapIcon from '../components/icons/BootstrapIcon'
+import { useOverviewCharts } from '../hooks/useOverviewCharts'
+import { useViewportChartHeight } from '../hooks/useViewportChartHeight'
 import { useToast } from '../context/ToastContext'
 import { getApiErrorMessage } from '../utils/apiErrors'
 import { aggregateSummary, hasAnyPortfolioData } from '../utils/overviewAggregate'
-import { ppfToSummaryPart, workspaceIcon } from '../utils/ppfOverview'
+import { computeChartPlotHeight, estimateTabPanelHeight } from '../utils/chartLayout'
+import { ppfToSummaryPart } from '../utils/ppfOverview'
 
 const EMPTY_PROGRESS = {
   mf: [],
@@ -40,7 +42,14 @@ function DashboardPage() {
   const [ppfInvestments, setPpfInvestments] = useState([])
   const [ppfSummary, setPpfSummary] = useState(null)
   const [investmentProgress, setInvestmentProgress] = useState(EMPTY_PROGRESS)
+  const [benchmarkSeries, setBenchmarkSeries] = useState([])
   const [isProgressLoading, setIsProgressLoading] = useState(false)
+  const [isBenchmarksLoading, setIsBenchmarksLoading] = useState(false)
+  const [chartWrapRef, chartMinHeight] = useViewportChartHeight({
+    layoutKey: isProgressLoading,
+  })
+  const chartPlotHeight = computeChartPlotHeight(chartMinHeight)
+  const overviewCharts = useOverviewCharts(investmentProgress, benchmarkSeries)
 
   const loadOverviewData = useCallback(async () => {
     setIsLoading(true)
@@ -101,6 +110,8 @@ function DashboardPage() {
 
   const loadInvestmentProgress = useCallback(async () => {
     setIsProgressLoading(true)
+    setBenchmarkSeries([])
+    setIsBenchmarksLoading(true)
 
     try {
       const progressResult = await fetchInvestmentProgress()
@@ -111,12 +122,26 @@ function DashboardPage() {
       })
     } catch (error) {
       setInvestmentProgress(EMPTY_PROGRESS)
+      setBenchmarkSeries([])
+      setIsBenchmarksLoading(false)
       showToast(
         getApiErrorMessage(error, 'Unable to load investment progress.'),
       )
+      return
     } finally {
       setIsProgressLoading(false)
     }
+
+    fetchInvestmentProgressBenchmarks()
+      .then((result) => {
+        setBenchmarkSeries(result.benchmarks ?? [])
+      })
+      .catch(() => {
+        setBenchmarkSeries([])
+      })
+      .finally(() => {
+        setIsBenchmarksLoading(false)
+      })
   }, [showToast])
 
   const summary = useMemo(
@@ -229,6 +254,52 @@ function DashboardPage() {
           <>
             {!hasPortfolioData && <OverviewEmptyState />}
 
+            {(hasPortfolioData && (isProgressLoading || hasInvestmentProgress)) && (
+              <section className="mf-section mf-section-portfolio-charts">
+                {!isProgressLoading && (
+                  <div className="mf-section-header mf-portfolio-charts-header">
+                    <OverviewChartControls
+                      activeTab={overviewCharts.activeTab}
+                      onTabChange={overviewCharts.setActiveTab}
+                      selectedIds={overviewCharts.selectedIds}
+                      onTogglePortfolio={overviewCharts.togglePortfolio}
+                      selectedRange={overviewCharts.selectedRange}
+                      onRangeChange={overviewCharts.setSelectedRange}
+                      benchmarkOptions={overviewCharts.benchmarkOptions}
+                      selectedBenchmarkId={overviewCharts.selectedBenchmarkId}
+                      onBenchmarkChange={overviewCharts.setSelectedBenchmarkId}
+                      isBenchmarksLoading={isBenchmarksLoading}
+                    />
+                  </div>
+                )}
+                <div
+                  ref={chartWrapRef}
+                  className="mf-net-chart-wrap mf-net-chart-wrap--fill"
+                  style={{ height: chartMinHeight }}
+                  aria-busy={isProgressLoading}
+                >
+                  {isProgressLoading ? (
+                    <div
+                      className="mf-table-skeleton mf-progress-chart-skeleton"
+                      style={{ height: estimateTabPanelHeight(chartMinHeight) }}
+                    />
+                  ) : (
+                    <OverviewChartsPanel
+                      activeTab={overviewCharts.activeTab}
+                      activeTabLabel={overviewCharts.activeTabLabel}
+                      filteredPoints={overviewCharts.filteredPoints}
+                      progressChartPoints={overviewCharts.progressChartPoints}
+                      benchmarkLabel={overviewCharts.benchmarkLabel}
+                      drawdownPoints={overviewCharts.drawdownPoints}
+                      profitLossPctPoints={overviewCharts.profitLossPctPoints}
+                      holdingPctPoints={overviewCharts.holdingPctPoints}
+                      plotHeight={chartPlotHeight}
+                    />
+                  )}
+                </div>
+              </section>
+            )}
+
             <section className="mf-section">
               <div className="mf-section-header">
                 <h2 className="mf-section-title">Portfolio breakdown</h2>
@@ -237,50 +308,6 @@ function DashboardPage() {
                 portfolios={portfolios}
                 totalCurrentValue={summary.total_current_value}
               />
-            </section>
-
-            {(hasPortfolioData && (isProgressLoading || hasInvestmentProgress)) && (
-              <section className="mf-section">
-                <div className="mf-section-header">
-                  <h2 className="mf-section-title">Investment progress</h2>
-                </div>
-                <div className="mf-net-chart-wrap" aria-busy={isProgressLoading}>
-                  {isProgressLoading ? (
-                    <div className="mf-loading">
-                      <div className="mf-table-skeleton mf-progress-chart-skeleton" />
-                    </div>
-                  ) : (
-                    <InvestmentProgressChart seriesByPortfolio={investmentProgress} />
-                  )}
-                </div>
-              </section>
-            )}
-
-            <section className="mf-section">
-              <div className="mf-section-header">
-                <h2 className="mf-section-title">Investments</h2>
-              </div>
-              <div className="overview-workspace-links">
-                {portfolios.map((portfolio) => (
-                  <Link
-                    key={portfolio.key}
-                    to={portfolio.path}
-                    className={`overview-workspace-link overview-workspace-link-${portfolio.key}`}
-                  >
-                    <BootstrapIcon
-                      icon={workspaceIcon(portfolio.key)}
-                      className="overview-workspace-link-icon"
-                    />
-                    <span className="overview-workspace-link-label">{portfolio.label}</span>
-                    <span className="overview-workspace-link-meta">
-                      {portfolio.count > 0
-                        ? `${portfolio.count} ${portfolio.countLabel}`
-                        : 'No holdings'}
-                    </span>
-                    <BootstrapIcon icon="bi-chevron-right" className="overview-workspace-link-chevron" />
-                  </Link>
-                ))}
-              </div>
             </section>
           </>
         )}

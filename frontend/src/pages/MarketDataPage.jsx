@@ -50,26 +50,20 @@ function MarketDataPage() {
   const handleSyncAll = async () => {
     setIsSyncingAll(true)
     try {
-      const all = await syncAllMarketData({
-        amfiPeriod: AMFI_HISTORICAL_PERIOD,
-        nsePeriod: NSE_HISTORICAL_PERIOD,
-      })
+      const all = await syncAllMarketData()
+      const details = all.details ?? {}
 
       setResults({
-        amfiEod: formatAmfiEod(all.amfiEod),
-        amfiHistorical: formatAmfiHistorical(all.amfiHistorical),
-        nseEod: formatNseEod(all.nseEod),
-        nseHistorical: formatNseHistorical(all.nseHistorical),
+        amfiEod: formatSyncStep(details.amfi_eod, formatAmfiEod),
+        amfiHistorical: formatSyncStep(details.amfi_historical, formatAmfiHistorical),
+        nseEod: formatSyncStep(details.nse_eod, formatNseEod),
+        nseHistorical: formatSyncStep(details.nse_historical, formatNseHistorical),
       })
 
-      const hasErrors =
-        all.amfiHistorical.errors?.length || all.nseHistorical.errors?.length
-      showToast(
-        hasErrors
-          ? 'Market data sync completed with some warnings.'
-          : 'Market data synced successfully.',
-        { type: hasErrors ? 'error' : 'success' },
-      )
+      const hasWarnings = all.status === 'partial' || all.status === 'failed'
+      showToast(all.message ?? 'Market data synced.', {
+        type: hasWarnings ? 'error' : 'success',
+      })
     } catch (error) {
       showToast(getApiErrorMessage(error, 'Unable to sync market data.'), { type: 'error' })
     } finally {
@@ -203,6 +197,18 @@ function MarketDataPage() {
       </div>
     </div>
   )
+}
+
+function formatSyncStep(step, formatter) {
+  if (!step) {
+    return null
+  }
+
+  if (step.result && formatter) {
+    return formatter({ ...step.result, errors: step.errors ?? [] })
+  }
+
+  return step.message ?? step.status
 }
 
 function formatAmfiEod(result) {

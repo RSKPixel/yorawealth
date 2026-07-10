@@ -3,6 +3,7 @@ import Modal from '../common/Modal'
 import BootstrapIcon from '../icons/BootstrapIcon'
 import BanksTab from './BanksTab'
 import GeneralTab from './GeneralTab'
+import LogTab from './LogTab'
 import PasswordTab from './PasswordTab'
 import ProfileTab from './ProfileTab'
 import { SETTINGS_TAB_DESCRIPTIONS, SETTINGS_TABS } from './settingsTabs'
@@ -53,6 +54,7 @@ function SettingsModal({ onClose }) {
             {activeTab === 'profile' && <ProfileTab />}
             {activeTab === 'password' && <PasswordTab />}
             {activeTab === 'banks' && <BanksTab />}
+            {activeTab === 'log' && <LogTab />}
           </div>
         </div>
       </div>

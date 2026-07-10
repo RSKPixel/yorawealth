@@ -1,65 +1,38 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useChartWidth } from '../../hooks/useChartWidth'
 import { formatMonthLabel } from '../../utils/financialYear'
-import { formatTradeValue, formatTradeValueCompact } from '../../utils/mutualFundFormat'
+import { formatPct } from '../../utils/mutualFundFormat'
 
 const MIN_CHART_HEIGHT = 200
 const DEFAULT_HEADER_HEIGHT = 18
 
 const SERIES = [
   {
-    key: 'invested_value',
-    label: 'Invested',
-    className: 'mf-progress-chart-line-invested',
-    pointClassName: 'mf-progress-chart-point-invested',
-    ohlcClassName: 'mf-progress-chart-ohlc-value-invested',
-    ohlcLabel: 'Inv',
+    key: 'equity_pct',
+    label: 'Equity',
+    className: 'mf-asset-mix-chart-line-equity',
+    pointClassName: 'mf-asset-mix-chart-point-equity',
+    ohlcClassName: 'mf-asset-mix-chart-ohlc-equity',
   },
   {
-    key: 'current_value',
-    label: 'Current value',
-    className: 'mf-progress-chart-line-value',
-    pointClassName: 'mf-progress-chart-point-value',
-    ohlcClassName: 'mf-progress-chart-ohlc-value-current',
-    ohlcLabel: 'Val',
+    key: 'debt_pct',
+    label: 'Debt',
+    className: 'mf-asset-mix-chart-line-debt',
+    pointClassName: 'mf-asset-mix-chart-point-debt',
+    ohlcClassName: 'mf-asset-mix-chart-ohlc-debt',
+  },
+  {
+    key: 'gold_pct',
+    label: 'Gold',
+    className: 'mf-asset-mix-chart-line-gold',
+    pointClassName: 'mf-asset-mix-chart-point-gold',
+    ohlcClassName: 'mf-asset-mix-chart-ohlc-gold',
   },
 ]
 
-const BENCHMARK_SERIES_BASE = {
-  key: 'benchmark_value',
-  className: 'mf-progress-chart-line-benchmark',
-  pointClassName: 'mf-progress-chart-point-benchmark',
-  ohlcClassName: 'mf-progress-chart-ohlc-value-benchmark',
-}
-
-function shortBenchmarkLabel(label) {
-  if (!label) {
-    return 'Bench'
-  }
-
-  const firstWord = label.trim().split(/\s+/)[0]
-  if (firstWord.length <= 8) {
-    return firstWord
-  }
-
-  return `${firstWord.slice(0, 8)}…`
-}
-
-function getExtent(values) {
-  if (!values.length) return { min: 0, max: 0 }
-  let min = values[0]
-  let max = values[0]
-  for (const value of values) {
-    if (value < min) min = value
-    if (value > max) max = value
-  }
-  return { min, max }
-}
-
-function buildTicks(min, max, count = 3) {
+function buildTicks(min, max, count = 4) {
   if (min === max) {
-    if (min === 0) return [0]
-    return [min, 0].sort((a, b) => a - b)
+    return [max]
   }
 
   const span = max - min
@@ -71,27 +44,7 @@ function buildTicks(min, max, count = 3) {
   return ticks
 }
 
-function buildSeriesPath(points, key, xForIndex, yForValue, innerWidth, innerHeight) {
-  let pathD = ''
-  let started = false
-
-  points.forEach((point, index) => {
-    const value = point[key]
-    if (!Number.isFinite(value)) {
-      started = false
-      return
-    }
-
-    const x = xForIndex(index, innerWidth)
-    const y = yForValue(value, innerHeight)
-    pathD += `${started ? 'L' : 'M'} ${x} ${y} `
-    started = true
-  })
-
-  return pathD.trim()
-}
-
-export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchmark' }) {
+export function HoldingPctChart({ points, plotHeight }) {
   const headerRef = useRef(null)
   const canvasRef = useRef(null)
   const width = useChartWidth(canvasRef)
@@ -113,30 +66,12 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
     () =>
       points.filter(
         (point) =>
-          Number.isFinite(point.invested_value) &&
-          Number.isFinite(point.current_value),
+          Number.isFinite(point.equity_pct) &&
+          Number.isFinite(point.debt_pct) &&
+          Number.isFinite(point.gold_pct),
       ),
     [points],
   )
-
-  const activeSeries = useMemo(() => {
-    const hasBenchmark = seriesPoints.some(
-      (point) =>
-        Number.isFinite(point.benchmark_value) && point.benchmark_value > 0,
-    )
-    if (!hasBenchmark) {
-      return SERIES
-    }
-
-    return [
-      ...SERIES,
-      {
-        ...BENCHMARK_SERIES_BASE,
-        label: benchmarkLabel,
-        ohlcLabel: shortBenchmarkLabel(benchmarkLabel),
-      },
-    ]
-  }, [benchmarkLabel, seriesPoints])
 
   useEffect(() => {
     setHoverIndex(null)
@@ -145,25 +80,15 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
   if (!seriesPoints.length) {
     return (
       <div className="mf-net-chart-empty">
-        Select Mutual Fund, Stocks, or PPF to see progress.
+        Select Mutual Fund, Stocks, or PPF to see asset class holding %.
       </div>
     )
   }
 
-  const allValues = seriesPoints.flatMap((point) => {
-    const values = [point.invested_value, point.current_value]
-    if (Number.isFinite(point.benchmark_value) && point.benchmark_value > 0) {
-      values.push(point.benchmark_value)
-    }
-    return values
-  })
-  const { min, max } = getExtent(allValues)
-  const paddedSpan = max === min ? Math.abs(max || 1) : max - min
-  const padding = paddedSpan * 0.08 || 1
-  const yMin = Math.max(0, min - padding)
-  const yMax = max + padding
+  const yMin = 0
+  const yMax = 100
 
-  const padLeft = 72
+  const padLeft = 56
   const padRight = 16
   const padTop = 10
   const padBottom = 28
@@ -206,7 +131,7 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
   const height = canvasHeight
   const innerWidth = width - padLeft - padRight
   const innerHeight = height - padTop - padBottom
-  const yTicks = buildTicks(yMin, yMax, 3).filter((tick) => tick >= 0)
+  const yTicks = buildTicks(yMin, yMax, 4)
   const hoverPoint =
     hoverIndex != null && hoverIndex >= 0 && hoverIndex < seriesPoints.length
       ? seriesPoints[hoverIndex]
@@ -254,9 +179,11 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
     >
       <div ref={headerRef} className="mf-progress-chart-header">
         <div className="mf-progress-chart-legend" aria-hidden="true">
-          {activeSeries.map((series) => (
+          {SERIES.map((series) => (
             <span key={series.key} className="mf-progress-chart-legend-item">
-              <span className={`mf-progress-chart-legend-swatch ${series.className}`} />
+              <span
+                className={`mf-progress-chart-legend-swatch ${series.className}`}
+              />
               {series.label}
             </span>
           ))}
@@ -267,26 +194,17 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
             <span className="mf-progress-chart-ohlc-month">
               {formatMonthLabel(displayPoint.month)}
             </span>
-            {activeSeries.map((series) => {
-              const value = displayPoint[series.key]
-              if (!Number.isFinite(value)) {
-                return null
-              }
-
-              return (
-                <span key={series.key} className="mf-progress-chart-ohlc-item">
-                  <span className="mf-progress-chart-ohlc-sep">·</span>
-                  <span className="mf-progress-chart-ohlc-label">
-                    {series.ohlcLabel}
-                  </span>
-                  <span
-                    className={`mf-progress-chart-ohlc-value ${series.ohlcClassName}`}
-                  >
-                    {formatTradeValue(value)}
-                  </span>
+            {SERIES.map((series) => (
+              <span key={series.key} className="mf-progress-chart-ohlc-item">
+                <span className="mf-progress-chart-ohlc-sep">·</span>
+                <span className="mf-progress-chart-ohlc-label">{series.label}</span>
+                <span
+                  className={`mf-progress-chart-ohlc-value ${series.ohlcClassName}`}
+                >
+                  {formatPct(displayPoint[series.key])}
                 </span>
-              )
-            })}
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -303,7 +221,7 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
           width={width}
           height={height}
           role="img"
-          aria-label="Investment progress over time"
+          aria-label="Asset class holding percent over time"
         >
           <line
             x1={padLeft}
@@ -337,24 +255,20 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
                   textAnchor="end"
                   className="mf-net-chart-axis-label"
                 >
-                  {formatTradeValueCompact(tick)}
+                  {formatPct(tick, 0)}
                 </text>
               </g>
             )
           })}
 
-          {activeSeries.map((series) => {
-            const pathD = buildSeriesPath(
-              seriesPoints,
-              series.key,
-              xForIndex,
-              yForValue,
-              innerWidth,
-              innerHeight,
-            )
-            if (!pathD) {
-              return null
-            }
+          {SERIES.map((series) => {
+            const pathD = seriesPoints
+              .map((point, index) => {
+                const x = xForIndex(index, innerWidth)
+                const y = yForValue(point[series.key], innerHeight)
+                return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
+              })
+              .join(' ')
 
             return (
               <path
@@ -380,13 +294,8 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
             const isActive = hoverIndex === index
             return (
               <g key={point.month}>
-                {activeSeries.map((series) => {
-                  const value = point[series.key]
-                  if (!Number.isFinite(value)) {
-                    return null
-                  }
-
-                  const y = yForValue(value, innerHeight)
+                {SERIES.map((series) => {
+                  const y = yForValue(point[series.key], innerHeight)
                   return (
                     <circle
                       key={`${point.month}-${series.key}`}
@@ -423,4 +332,4 @@ export function ProgressLineChart({ points, plotHeight, benchmarkLabel = 'Benchm
   )
 }
 
-export default ProgressLineChart
+export default HoldingPctChart
