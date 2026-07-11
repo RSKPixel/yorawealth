@@ -11,10 +11,6 @@ export function normalizeStockSymbol(symbol) {
 }
 
 export function classifyStockAssetClass({ symbol, isin, name, asset_class: assetClass } = {}) {
-  if (assetClass) {
-    return normalizeAssetClass(assetClass)
-  }
-
   const normalizedSymbol = normalizeStockSymbol(symbol)
   if (SGB_SYMBOL_PATTERN.test(normalizedSymbol)) {
     return 'Gold'
@@ -28,6 +24,10 @@ export function classifyStockAssetClass({ symbol, isin, name, asset_class: asset
   const nameUpper = (name ?? '').toUpperCase()
   if (nameUpper.includes('SOVEREIGN GOLD BOND') || nameUpper.includes(' GOLD BOND')) {
     return 'Gold'
+  }
+
+  if (assetClass) {
+    return normalizeAssetClass(assetClass)
   }
 
   return 'Equity'

@@ -95,6 +95,43 @@ export function computePortfolioAssetMix(
   return mix
 }
 
+export function computeUnrealizedGainByAssetClass(
+  mfHoldings = [],
+  stockHoldings = [],
+  { ppfCurrentValue = 0, ppfInvested = 0 } = {},
+) {
+  const gains = emptyMixValues()
+
+  for (const row of mfHoldings) {
+    accumulateAssetMixValues(
+      gains,
+      resolveMutualFundAssetClass(row),
+      row.unrealized_gain,
+    )
+  }
+
+  for (const row of stockHoldings) {
+    accumulateAssetMixValues(
+      gains,
+      resolveStockAssetClass(row),
+      row.unrealized_gain,
+    )
+  }
+
+  const ppfValue = Number(ppfCurrentValue) || 0
+  const ppfInvestedAmount = Number(ppfInvested) || 0
+  if (ppfValue > 0 || ppfInvestedAmount > 0) {
+    accumulateAssetMixValues(gains, 'Debt', ppfValue - ppfInvestedAmount)
+  }
+
+  return {
+    equity: gains.Equity,
+    debt: gains.Debt,
+    gold: gains.Gold,
+    total: gains.Equity + gains.Debt + gains.Gold,
+  }
+}
+
 export function assetMixPercentagesSumTo100(mix, tolerance = 0.01) {
   if (!mix) return false
   const sum = mix.equityPct + mix.debtPct + mix.goldPct

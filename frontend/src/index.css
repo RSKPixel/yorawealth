@@ -886,6 +886,22 @@ body {
     @apply tabular-nums font-medium text-slate-100;
   }
 
+  .mf-gain-breakdown-tooltip .mf-ratio-tooltip-title {
+    @apply text-slate-200;
+  }
+
+  .mf-gain-breakdown-tooltip .mf-stat-gain-positive {
+    @apply text-emerald-300;
+  }
+
+  .mf-gain-breakdown-tooltip .mf-stat-gain-negative {
+    @apply text-rose-300;
+  }
+
+  .mf-gain-breakdown-tooltip .mf-stat-gain-neutral {
+    @apply text-slate-300;
+  }
+
   .mf-page-body {
     @apply space-y-6;
   }

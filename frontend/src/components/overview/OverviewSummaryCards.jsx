@@ -9,7 +9,10 @@ import {
   formatTradeValueCompact,
   formatTradeValueTooltip,
 } from '../../utils/mutualFundFormat'
-import { computePortfolioAssetMix } from '../../utils/assetMix'
+import {
+  computePortfolioAssetMix,
+  computeUnrealizedGainByAssetClass,
+} from '../../utils/assetMix'
 
 function gainClassName(value) {
   if (value > 0) return 'mf-stat-gain-positive'
@@ -25,6 +28,32 @@ function moneyTablet(label, amount, valueClass) {
     money: true,
     valueClass,
   }
+}
+
+function UnrealizedGainBreakdownTooltip({ breakdown }) {
+  const rows = [
+    { key: 'equity', label: 'Equity', tone: 'equity', amount: breakdown.equity },
+    { key: 'debt', label: 'Debt', tone: 'debt', amount: breakdown.debt },
+    { key: 'gold', label: 'Gold', tone: 'gold', amount: breakdown.gold },
+  ]
+
+  return (
+    <div className="mf-ratio-tooltip mf-gain-breakdown-tooltip">
+      <div className="mf-ratio-tooltip-title">Unrealized gain</div>
+      {rows.map((row) => (
+        <div key={row.key} className="mf-ratio-tooltip-row">
+          <span className={`mf-ratio-tooltip-key mf-ratio-legend-${row.tone}`}>
+            {row.label}
+          </span>
+          <span
+            className={`mf-ratio-tooltip-val tabular-nums ${gainClassName(row.amount)}`}
+          >
+            {formatTradeValue(row.amount)}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function OverviewSummaryCards({
@@ -47,15 +76,25 @@ function OverviewSummaryCards({
     ppfInvested,
   })
 
+  const gainBreakdown = computeUnrealizedGainByAssetClass(
+    mfHoldings ?? [],
+    stockHoldings ?? [],
+    { ppfCurrentValue, ppfInvested },
+  )
+
   const cards = [
     {
       key: 'gain',
       tablets: [
-        moneyTablet(
-          'Unrealized gain',
-          summary.total_unrealized_gain,
-          gainClassName(summary.total_unrealized_gain),
-        ),
+        {
+          label: 'Unrealized gain',
+          value: formatTradeValueCompact(summary.total_unrealized_gain),
+          money: true,
+          valueClass: gainClassName(summary.total_unrealized_gain),
+          tooltipVariant: 'card',
+          tooltipPlacement: 'bottom',
+          tooltip: <UnrealizedGainBreakdownTooltip breakdown={gainBreakdown} />,
+        },
       ],
       icon: 'bi-graph-up-arrow',
       accent: 'mf-stat-accent-teal',
@@ -125,7 +164,12 @@ function OverviewSummaryCards({
                 <div key={tablet.label} className="mf-stat-tablet">
                   <span className="mf-stat-tablet-label">{tablet.label}</span>
                   {tablet.tooltip ? (
-                    <Tooltip label={tablet.tooltip} delayMs={400}>
+                    <Tooltip
+                      label={tablet.tooltip}
+                      delayMs={tablet.tooltipVariant === 'card' ? 150 : 400}
+                      variant={tablet.tooltipVariant ?? 'default'}
+                      placement={tablet.tooltipPlacement ?? 'bottom'}
+                    >
                       <span
                         className={`mf-stat-tablet-value${tablet.money ? ' mf-stat-tablet-value-money' : ''} ${tablet.valueClass ?? ''}`}
                       >
