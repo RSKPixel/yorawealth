@@ -1051,7 +1051,7 @@ body {
   }
 
   .mf-portfolio-charts-header {
-    @apply flex flex-wrap items-center justify-between gap-x-3 gap-y-2;
+    @apply relative z-30 flex flex-wrap items-center justify-between gap-x-3 gap-y-2;
   }
 
   .mf-portfolio-charts-header .mf-progress-chart-toolbar {
@@ -1770,17 +1770,58 @@ body {
     @apply flex flex-wrap items-center gap-1.5;
   }
 
-  .mf-progress-chart-benchmark-select {
-    @apply max-w-[11rem] rounded-lg border border-slate-600/50 bg-slate-900/60 px-2 text-[0.6875rem] text-slate-100 outline-none transition focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 disabled:cursor-wait disabled:opacity-60;
-    height: 1.375rem;
-    min-height: 1.375rem;
-    padding-top: 0;
-    padding-bottom: 0;
+  .mf-progress-chart-benchmark {
+    @apply relative z-40 w-max max-w-[18rem];
   }
 
-  .mf-progress-chart-benchmark-select--reserved {
+  .mf-progress-chart-benchmark--reserved {
     visibility: hidden;
     pointer-events: none;
+  }
+
+  .mf-progress-chart-benchmark-trigger {
+    @apply inline-flex w-max max-w-[18rem] items-center gap-1 rounded-lg border border-slate-600/50 bg-slate-900/60 px-2 text-left text-[0.6875rem] text-slate-100 outline-none transition hover:border-slate-500/60 hover:bg-slate-800/70 focus-visible:border-violet-500/40 focus-visible:ring-1 focus-visible:ring-violet-500/20 disabled:cursor-default disabled:opacity-60;
+    height: 1.375rem;
+    min-height: 1.375rem;
+  }
+
+  .mf-progress-chart-benchmark--loading .mf-progress-chart-benchmark-trigger {
+    @apply opacity-70;
+  }
+
+  .mf-progress-chart-benchmark--open .mf-progress-chart-benchmark-trigger {
+    @apply border-violet-500/40 bg-slate-800/80;
+  }
+
+  .mf-progress-chart-benchmark-label {
+    @apply whitespace-nowrap;
+  }
+
+  .mf-progress-chart-benchmark-chevron {
+    @apply shrink-0 text-[0.55rem] text-slate-400 transition-transform;
+  }
+
+  .mf-progress-chart-benchmark--open .mf-progress-chart-benchmark-chevron {
+    @apply rotate-180 text-slate-200;
+  }
+
+  .mf-progress-chart-benchmark-menu {
+    --benchmark-option-height: 1.75rem;
+    @apply z-[200] overflow-y-auto rounded-lg border border-slate-600/60 bg-zinc-900 py-1 shadow-xl shadow-black/50;
+    width: max-content;
+    max-height: calc(0.5rem + (10 * var(--benchmark-option-height)));
+  }
+
+  .mf-progress-chart-benchmark-option {
+    @apply flex h-[var(--benchmark-option-height)] w-full items-center whitespace-nowrap px-2.5 text-left text-[0.6875rem] text-slate-200 transition-colors hover:bg-slate-700/60 hover:text-slate-50;
+  }
+
+  .mf-progress-chart-benchmark-option--muted {
+    @apply pointer-events-none text-slate-500;
+  }
+
+  .mf-progress-chart-benchmark-option.is-selected {
+    @apply bg-violet-500/15 text-violet-100;
   }
 
   .mf-portfolio-charts-header .st-segmented-control-option {
