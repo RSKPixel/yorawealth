@@ -175,6 +175,7 @@ function DashboardPage() {
   }, [hasPortfolioData, isLoading, loadInvestmentProgress])
 
   const ppfCurrentValue = ppfSummary?.total_current_value ?? 0
+  const ppfInvested = ppfSummary?.total_invested ?? 0
 
   const hasInvestmentProgress = useMemo(
     () => Object.values(investmentProgress).some((points) => points.length > 0),
@@ -241,6 +242,7 @@ function DashboardPage() {
             mfHoldings={mfHoldings}
             stockHoldings={stockHoldings}
             ppfCurrentValue={ppfCurrentValue}
+            ppfInvested={ppfInvested}
           />
         )}
       </div>

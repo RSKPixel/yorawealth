@@ -805,6 +805,87 @@ body {
     @apply translate-x-0 -translate-y-1/2;
   }
 
+  .app-tooltip-bubble-top {
+    @apply -translate-x-1/2 -translate-y-full;
+  }
+
+  .app-tooltip-bubble-card {
+    @apply whitespace-normal rounded-lg border border-slate-500/50 bg-slate-900/95 px-0 py-0 text-left shadow-xl shadow-black/50 backdrop-blur-sm;
+  }
+
+  .app-tooltip-bubble-card::before,
+  .app-tooltip-bubble-card::after {
+    content: '';
+    position: absolute;
+    left: calc(50% + var(--tooltip-tip-offset, 0px));
+    transform: translateX(-50%);
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+  }
+
+  /* Pointy tip toward the bar (below the card when placement=top) */
+  .app-tooltip-bubble-card.app-tooltip-bubble-top::before {
+    top: 100%;
+    border-top: 7px solid rgb(100 116 139 / 0.55);
+    border-bottom: 0;
+  }
+
+  .app-tooltip-bubble-card.app-tooltip-bubble-top::after {
+    top: 100%;
+    margin-top: -1px;
+    border-top: 6px solid rgb(15 23 42 / 0.98);
+    border-bottom: 0;
+    border-left-width: 6px;
+    border-right-width: 6px;
+  }
+
+  .app-tooltip-bubble-card:not(.app-tooltip-bubble-top)::before {
+    bottom: 100%;
+    border-bottom: 7px solid rgb(100 116 139 / 0.55);
+    border-top: 0;
+  }
+
+  .app-tooltip-bubble-card:not(.app-tooltip-bubble-top)::after {
+    bottom: 100%;
+    margin-bottom: -1px;
+    border-bottom: 6px solid rgb(15 23 42 / 0.98);
+    border-top: 0;
+    border-left-width: 6px;
+    border-right-width: 6px;
+  }
+
+  .mf-ratio-tooltip {
+    @apply min-w-[9.5rem] px-3 py-2;
+  }
+
+  .mf-ratio-tooltip-title {
+    @apply mb-1.5 border-b border-slate-700/70 pb-1 text-[0.6875rem] font-semibold tracking-wide;
+  }
+
+  .mf-ratio-tooltip-equity .mf-ratio-tooltip-title {
+    @apply text-violet-300;
+  }
+
+  .mf-ratio-tooltip-debt .mf-ratio-tooltip-title {
+    @apply text-sky-300;
+  }
+
+  .mf-ratio-tooltip-gold .mf-ratio-tooltip-title {
+    @apply text-amber-300;
+  }
+
+  .mf-ratio-tooltip-row {
+    @apply flex items-baseline justify-between gap-4 py-0.5 text-[0.6875rem];
+  }
+
+  .mf-ratio-tooltip-key {
+    @apply text-slate-400;
+  }
+
+  .mf-ratio-tooltip-val {
+    @apply tabular-nums font-medium text-slate-100;
+  }
+
   .mf-page-body {
     @apply space-y-6;
   }
@@ -1345,8 +1426,16 @@ body {
     @apply mt-1.5 h-5;
   }
 
+  .mf-ratio-bar-segment-wrap {
+    @apply min-w-0;
+  }
+
+  .mf-ratio-bar-segment-wrap .app-tooltip-trigger {
+    @apply flex h-full w-full min-w-0;
+  }
+
   .mf-ratio-bar-segment {
-    @apply flex min-w-0 items-center justify-center overflow-hidden;
+    @apply flex h-full min-w-0 w-full items-center justify-center overflow-hidden;
   }
 
   .mf-ratio-bar-label {

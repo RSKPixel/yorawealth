@@ -50,24 +50,21 @@ export function toAssetMixPercentages(values) {
 export function computePortfolioAssetMix(
   mfHoldings = [],
   stockHoldings = [],
-  { portfolioTotal, ppfCurrentValue = 0 } = {},
+  { portfolioTotal, ppfCurrentValue = 0, ppfInvested = 0 } = {},
 ) {
   const values = emptyMixValues()
+  const invested = emptyMixValues()
 
   for (const row of mfHoldings) {
-    accumulateAssetMixValues(
-      values,
-      resolveMutualFundAssetClass(row),
-      row.current_value,
-    )
+    const assetClass = resolveMutualFundAssetClass(row)
+    accumulateAssetMixValues(values, assetClass, row.current_value)
+    accumulateAssetMixValues(invested, assetClass, row.invested_amount)
   }
 
   for (const row of stockHoldings) {
-    accumulateAssetMixValues(
-      values,
-      resolveStockAssetClass(row),
-      row.current_value,
-    )
+    const assetClass = resolveStockAssetClass(row)
+    accumulateAssetMixValues(values, assetClass, row.current_value)
+    accumulateAssetMixValues(invested, assetClass, row.invested_amount)
   }
 
   const ppfValue = Number(ppfCurrentValue) || 0
@@ -75,10 +72,20 @@ export function computePortfolioAssetMix(
     accumulateAssetMixValues(values, 'Debt', ppfValue)
   }
 
+  const ppfInvestedAmount = Number(ppfInvested) || 0
+  if (ppfInvestedAmount > 0) {
+    accumulateAssetMixValues(invested, 'Debt', ppfInvestedAmount)
+  }
+
   const mix = toAssetMixPercentages(values)
   if (!mix) {
     return null
   }
+
+  mix.equityInvested = invested.Equity
+  mix.debtInvested = invested.Debt
+  mix.goldInvested = invested.Gold
+  mix.totalInvested = invested.Equity + invested.Debt + invested.Gold
 
   if (portfolioTotal != null) {
     mix.portfolioTotal = portfolioTotal

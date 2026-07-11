@@ -27,7 +27,13 @@ function moneyTablet(label, amount, valueClass) {
   }
 }
 
-function OverviewSummaryCards({ summary, mfHoldings, stockHoldings, ppfCurrentValue = 0 }) {
+function OverviewSummaryCards({
+  summary,
+  mfHoldings,
+  stockHoldings,
+  ppfCurrentValue = 0,
+  ppfInvested = 0,
+}) {
   if (!summary) return null
 
   const gainPct =
@@ -38,6 +44,7 @@ function OverviewSummaryCards({ summary, mfHoldings, stockHoldings, ppfCurrentVa
   const assetMix = computePortfolioAssetMix(mfHoldings ?? [], stockHoldings ?? [], {
     portfolioTotal: summary.total_current_value,
     ppfCurrentValue,
+    ppfInvested,
   })
 
   const cards = [
