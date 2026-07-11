@@ -1884,14 +1884,18 @@ body {
     pointer-events: none;
   }
 
+  .mf-progress-chart-benchmark--loading {
+    @apply cursor-wait;
+  }
+
   .mf-progress-chart-benchmark-trigger {
-    @apply inline-flex w-max max-w-[18rem] items-center gap-1 rounded-lg border border-slate-600/50 bg-slate-900/60 px-2 text-left text-[0.6875rem] text-slate-100 outline-none transition hover:border-slate-500/60 hover:bg-slate-800/70 focus-visible:border-violet-500/40 focus-visible:ring-1 focus-visible:ring-violet-500/20 disabled:cursor-default disabled:opacity-60;
+    @apply inline-flex w-max max-w-[18rem] items-center gap-1 rounded-lg border border-slate-600/50 bg-slate-900/60 px-2 text-left text-[0.6875rem] text-slate-100 outline-none transition hover:border-slate-500/60 hover:bg-slate-800/70 focus-visible:border-violet-500/40 focus-visible:ring-1 focus-visible:ring-violet-500/20 disabled:cursor-wait disabled:opacity-60;
     height: 1.375rem;
     min-height: 1.375rem;
   }
 
   .mf-progress-chart-benchmark--loading .mf-progress-chart-benchmark-trigger {
-    @apply opacity-70;
+    @apply pointer-events-none cursor-wait opacity-60;
   }
 
   .mf-progress-chart-benchmark--open .mf-progress-chart-benchmark-trigger {

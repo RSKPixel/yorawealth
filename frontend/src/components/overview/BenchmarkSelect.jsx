@@ -16,7 +16,8 @@ function BenchmarkSelect({
   const menuRef = useRef(null)
   const listId = useId()
   const selected = options.find((option) => option.id === value)
-  const label = selected?.label ?? '—'
+  const label = isLoading ? 'Loading…' : (selected?.label ?? '—')
+  const isDisabled = reserved || isLoading
 
   useLayoutEffect(() => {
     if (!open || reserved) {
@@ -103,13 +104,13 @@ function BenchmarkSelect({
   }, [open])
 
   useEffect(() => {
-    if (reserved) {
+    if (reserved || isLoading) {
       setOpen(false)
     }
-  }, [reserved])
+  }, [reserved, isLoading])
 
   const menu =
-    open && !reserved && menuStyle
+    open && !reserved && !isLoading && menuStyle
       ? createPortal(
           <ul
             ref={menuRef}
@@ -133,14 +134,6 @@ function BenchmarkSelect({
                 —
               </button>
             </li>
-            {isLoading && options.length === 0 ? (
-              <li
-                className="mf-progress-chart-benchmark-option mf-progress-chart-benchmark-option--muted"
-                role="presentation"
-              >
-                Loading…
-              </li>
-            ) : null}
             {options.map((option) => {
               const isSelected = option.id === value
 
@@ -187,9 +180,12 @@ function BenchmarkSelect({
         aria-controls={listId}
         aria-hidden={reserved}
         tabIndex={reserved ? -1 : 0}
-        disabled={reserved}
+        disabled={isDisabled}
         aria-busy={isLoading}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (isDisabled) return
+          setOpen((current) => !current)
+        }}
       >
         <span className="mf-progress-chart-benchmark-label">{label}</span>
         <BootstrapIcon

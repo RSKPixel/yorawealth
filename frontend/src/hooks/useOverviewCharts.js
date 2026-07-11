@@ -39,7 +39,8 @@ export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
     PORTFOLIO_OPTIONS.map((option) => option.id),
   )
   const [selectedRange, setSelectedRange] = useState('3y')
-  const [selectedBenchmarkId, setSelectedBenchmarkId] = useState('')
+  const [selectedBenchmarkId, setSelectedBenchmarkId] = useState('NIFTYBEES')
+  const [hasUserPickedBenchmark, setHasUserPickedBenchmark] = useState(false)
 
   useEffect(() => {
     if (optionsWithData.length === 0) {
@@ -55,6 +56,26 @@ export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
       return optionsWithData.map((option) => option.id)
     })
   }, [optionsWithData])
+
+  useEffect(() => {
+    if (hasUserPickedBenchmark || benchmarkOptions.length === 0) {
+      return
+    }
+
+    const niftyBees = benchmarkOptions.find(
+      (benchmark) =>
+        benchmark.id === 'NIFTYBEES' ||
+        benchmark.label?.toUpperCase() === 'NIFTYBEES',
+    )
+    if (niftyBees) {
+      setSelectedBenchmarkId(niftyBees.id)
+    }
+  }, [benchmarkOptions, hasUserPickedBenchmark])
+
+  const onBenchmarkChange = (nextId) => {
+    setHasUserPickedBenchmark(true)
+    setSelectedBenchmarkId(nextId)
+  }
 
   const selectedBenchmark = useMemo(
     () =>
@@ -138,7 +159,7 @@ export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
     togglePortfolio,
     benchmarkOptions,
     selectedBenchmarkId,
-    setSelectedBenchmarkId,
+    setSelectedBenchmarkId: onBenchmarkChange,
     benchmarkLabel: selectedBenchmark?.label ?? '',
     filteredPoints,
     progressChartPoints,
