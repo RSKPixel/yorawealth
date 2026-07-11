@@ -166,6 +166,10 @@ export function DrawdownLineChart({ points, plotHeight }) {
             <span className="mf-progress-chart-legend-swatch mf-drawdown-chart-legend-swatch" />
             Drawdown
           </span>
+          <span className="mf-progress-chart-legend-item">
+            <span className="mf-progress-chart-legend-swatch mf-drawdown-chart-signal-swatch" />
+            −5% vs 3M avg
+          </span>
         </div>
 
         {displayPoint && (
@@ -194,6 +198,17 @@ export function DrawdownLineChart({ points, plotHeight }) {
                 {formatPctSigned(displayPoint.drawdown_pct)}
               </span>
             </span>
+            {Number.isFinite(displayPoint.drawdown_ma) && (
+              <>
+                <span className="mf-progress-chart-ohlc-sep">·</span>
+                <span className="mf-progress-chart-ohlc-item">
+                  <span className="mf-progress-chart-ohlc-label">3M avg</span>
+                  <span className="mf-progress-chart-ohlc-value">
+                    {formatPctSigned(displayPoint.drawdown_ma)}
+                  </span>
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -274,16 +289,26 @@ export function DrawdownLineChart({ points, plotHeight }) {
             const x = xForIndex(index, innerWidth)
             const y = yForValue(point.drawdown_pct, innerHeight)
             const isActive = hoverIndex === index
+            const isSignal = Boolean(point.drawdown_ma_signal)
             return (
-              <circle
-                key={point.month}
-                cx={x}
-                cy={y}
-                r={isActive ? 4.5 : 3}
-                className={`mf-progress-chart-point mf-drawdown-chart-point${
-                  isActive ? ' mf-progress-chart-point-active' : ''
-                }`}
-              />
+              <g key={point.month}>
+                {isSignal && (
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={isActive ? 8 : 7}
+                    className="mf-drawdown-chart-signal-ring"
+                  />
+                )}
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={isSignal ? (isActive ? 5 : 4.5) : isActive ? 4.5 : 3}
+                  className={`mf-progress-chart-point mf-drawdown-chart-point${
+                    isSignal ? ' mf-drawdown-chart-point-signal' : ''
+                  }${isActive ? ' mf-progress-chart-point-active' : ''}`}
+                />
+              </g>
             )
           })}
 

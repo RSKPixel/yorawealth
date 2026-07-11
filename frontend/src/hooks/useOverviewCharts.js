@@ -14,9 +14,9 @@ import {
 
 export const CHART_TABS = [
   { id: 'progress', label: 'Investment progress' },
+  { id: 'drawdown', label: 'Drawdown' },
   { id: 'pl_pct', label: 'Profit & Loss %' },
   { id: 'holding_pct', label: 'Holding %' },
-  { id: 'drawdown', label: 'Drawdown' },
 ]
 
 export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
@@ -83,10 +83,15 @@ export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
     [activePoints, selectedBenchmark],
   )
 
-  const benchmarkPoints = useMemo(() => {
-    const fullSeries = computeBenchmarkSeries(activePoints, benchmarkCloseLookup)
-    return filterPointsByRange(fullSeries, selectedRange)
-  }, [activePoints, benchmarkCloseLookup, selectedRange])
+  const fullBenchmarkPoints = useMemo(
+    () => computeBenchmarkSeries(activePoints, benchmarkCloseLookup),
+    [activePoints, benchmarkCloseLookup],
+  )
+
+  const benchmarkPoints = useMemo(
+    () => filterPointsByRange(fullBenchmarkPoints, selectedRange),
+    [fullBenchmarkPoints, selectedRange],
+  )
 
   const progressChartPoints = useMemo(
     () => attachBenchmarkValues(filteredPoints, benchmarkPoints),

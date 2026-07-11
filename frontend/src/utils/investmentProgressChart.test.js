@@ -5,6 +5,7 @@ import {
   computeAssetMixPctSeries,
   computeBenchmarkSeries,
   computeDrawdownSeries,
+  annotateDrawdownMaSignals,
   computeProfitLossPctSeries,
   attachBenchmarkValues,
   buildNiftyCloseLookup,
@@ -244,6 +245,26 @@ describe('computeDrawdownSeries', () => {
     assert.equal(result[1].drawdown_pct, -20)
     assert.equal(result[2].drawdown_pct, 0)
     assert.equal(result[2].peak_profit_pct, 30)
+  })
+
+  it('marks when drawdown is 5pts worse than prior 3-point MA', () => {
+    const series = [
+      { month: '2024-01', drawdown_pct: 0 },
+      { month: '2024-02', drawdown_pct: -2 },
+      { month: '2024-03', drawdown_pct: -4 },
+      // MA of prior 3 = -2; signal when <= -7
+      { month: '2024-04', drawdown_pct: -8 },
+      { month: '2024-05', drawdown_pct: -3 },
+    ]
+
+    const result = annotateDrawdownMaSignals(series)
+
+    assert.equal(result[0].drawdown_ma_signal, false)
+    assert.equal(result[1].drawdown_ma_signal, false)
+    assert.equal(result[2].drawdown_ma_signal, false)
+    assert.equal(result[3].drawdown_ma, -2)
+    assert.equal(result[3].drawdown_ma_signal, true)
+    assert.equal(result[4].drawdown_ma_signal, false)
   })
 })
 

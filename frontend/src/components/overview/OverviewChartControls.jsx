@@ -44,6 +44,30 @@ function OverviewChartControls({
       </div>
 
       <div className="mf-progress-chart-toolbar">
+        {(benchmarkOptions.length > 0 || isBenchmarksLoading) && (
+          <select
+            className={`mf-progress-chart-benchmark-select${
+              activeTab === 'progress'
+                ? ''
+                : ' mf-progress-chart-benchmark-select--reserved'
+            }`}
+            value={selectedBenchmarkId}
+            onChange={(event) => onBenchmarkChange(event.target.value)}
+            aria-label="Compare with"
+            aria-hidden={activeTab !== 'progress'}
+            tabIndex={activeTab === 'progress' ? 0 : -1}
+            disabled={isBenchmarksLoading || activeTab !== 'progress'}
+            aria-busy={isBenchmarksLoading}
+          >
+            <option value="">—</option>
+            {benchmarkOptions.map((benchmark) => (
+              <option key={benchmark.id} value={benchmark.id}>
+                {benchmark.label}
+              </option>
+            ))}
+          </select>
+        )}
+
         <div
           className="st-segmented-control"
           role="group"
@@ -91,25 +115,6 @@ function OverviewChartControls({
             )
           })}
         </div>
-
-        {activeTab === 'progress' &&
-          (benchmarkOptions.length > 0 || isBenchmarksLoading) && (
-          <select
-            className="mf-progress-chart-benchmark-select"
-            value={selectedBenchmarkId}
-            onChange={(event) => onBenchmarkChange(event.target.value)}
-            aria-label="Compare with"
-            disabled={isBenchmarksLoading}
-            aria-busy={isBenchmarksLoading}
-          >
-            <option value="">—</option>
-            {benchmarkOptions.map((benchmark) => (
-              <option key={benchmark.id} value={benchmark.id}>
-                {benchmark.label}
-              </option>
-            ))}
-          </select>
-        )}
       </div>
     </>
   )

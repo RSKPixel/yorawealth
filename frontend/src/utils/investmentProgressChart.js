@@ -268,5 +268,36 @@ export function computeDrawdownSeries(points) {
     })
   }
 
-  return result
+  return annotateDrawdownMaSignals(result)
+}
+
+/**
+ * Mark points where drawdown is at least `thresholdPct` percentage points
+ * worse (more negative) than the moving average of the previous `window` points.
+ */
+export function annotateDrawdownMaSignals(
+  points,
+  { window = 3, thresholdPct = 5 } = {},
+) {
+  return points.map((point, index) => {
+    if (index < window) {
+      return {
+        ...point,
+        drawdown_ma: null,
+        drawdown_ma_signal: false,
+      }
+    }
+
+    const prior = points.slice(index - window, index)
+    const ma =
+      prior.reduce((sum, entry) => sum + entry.drawdown_pct, 0) / window
+    const drawdownMa = roundPct(ma)
+    const drawdownMaSignal = point.drawdown_pct <= drawdownMa - thresholdPct
+
+    return {
+      ...point,
+      drawdown_ma: drawdownMa,
+      drawdown_ma_signal: drawdownMaSignal,
+    }
+  })
 }
