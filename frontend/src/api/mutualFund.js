@@ -27,11 +27,7 @@ export async function uploadCamsPdf(file) {
   const formData = new FormData()
   formData.append('file', file)
 
-  const response = await api.post('/mutual-fund/cams/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
+  const response = await api.post('/mutual-fund/cams/upload', formData)
 
   return response.data
 }

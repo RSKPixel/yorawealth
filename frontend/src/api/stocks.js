@@ -15,11 +15,7 @@ export async function uploadTradebook(file, broker) {
   formData.append('file', file)
   formData.append('broker', broker)
 
-  const response = await api.post('/stocks/tradebook/upload', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  })
+  const response = await api.post('/stocks/tradebook/upload', formData)
 
   return response.data
 }

@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     access_token_cookie_name: str = "access_token"
     cookie_secure: bool = False
     cookie_samesite: str = "lax"
+    # Comma-separated frontend origins allowed for credentialed CORS.
+    # Example: http://localhost:5174,https://app.example.com
+    cors_origins: str = "http://localhost:5174"
 
     upload_dir: str = "uploads"
     profile_photo_max_bytes: int = 1 * 1024 * 1024
@@ -41,6 +44,15 @@ class Settings(BaseSettings):
             f"mysql+pymysql://{user}:{password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        origins = [
+            origin.strip()
+            for origin in self.cors_origins.split(",")
+            if origin.strip()
+        ]
+        return origins or ["http://localhost:5174"]
 
 
 settings = Settings()
