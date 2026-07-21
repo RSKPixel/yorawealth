@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-export const APP_TITLE = 'yora wealth'
+export const APP_TITLE = 'YORA WEALTH'
 
 export const PAGE_TITLES = {
   '/overview': 'Overview',

@@ -2,6 +2,7 @@ import DrawdownLineChart from './DrawdownChart'
 import HoldingPctChart from './HoldingPctChart'
 import ProgressLineChart from './InvestmentProgressChart'
 import ProfitLossPctChart from './ProfitLossPctChart'
+import QuarterlyProgressChart from './QuarterlyProgressChart'
 
 function OverviewChartsPanel({
   activeTab,
@@ -11,6 +12,7 @@ function OverviewChartsPanel({
   benchmarkLabel,
   drawdownPoints,
   profitLossPctPoints,
+  quarterlyProfitPoints,
   holdingPctPoints,
   plotHeight,
 }) {
@@ -22,6 +24,13 @@ function OverviewChartsPanel({
         points={progressChartPoints}
         plotHeight={plotHeight}
         benchmarkLabel={benchmarkLabel}
+      />
+    )
+  } else if (activeTab === 'quarterly') {
+    chart = (
+      <QuarterlyProgressChart
+        points={quarterlyProfitPoints}
+        plotHeight={plotHeight}
       />
     )
   } else if (activeTab === 'pl_pct') {

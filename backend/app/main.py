@@ -20,6 +20,8 @@ from app.services.bank_statement_service import purge_bank_statement_uploads
 app = FastAPI(title=settings.app_name, debug=settings.debug)
 
 upload_path = Path(settings.upload_dir)
+if not upload_path.is_absolute():
+    upload_path = Path(__file__).resolve().parent.parent / upload_path
 upload_path.mkdir(parents=True, exist_ok=True)
 (upload_path / "cams").mkdir(parents=True, exist_ok=True)
 (upload_path / "tradebooks").mkdir(parents=True, exist_ok=True)
@@ -45,4 +47,4 @@ app.include_router(overview_router, prefix="/api")
 app.include_router(ppf_router, prefix="/api")
 app.include_router(stocks_router, prefix="/api")
 app.include_router(user_settings_router, prefix="/api")
-app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
+app.mount("/uploads", StaticFiles(directory=str(upload_path)), name="uploads")

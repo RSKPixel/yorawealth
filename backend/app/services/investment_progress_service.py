@@ -707,6 +707,37 @@ class InvestmentProgressService:
         )
         stock_points[-1] = point
 
+    def _align_current_ppf_point(
+        self,
+        ppf_points: list[InvestmentProgressPoint],
+        client_pan: str,
+    ) -> None:
+        if not ppf_points:
+            return
+
+        today = date.today()
+        current_month = _month_key(_month_end(today.year, today.month))
+        if ppf_points[-1].month != current_month:
+            return
+
+        from app.services.ppf_service import PpfService
+
+        summary = PpfService(self.db).list_investments(client_pan).summary
+        invested = (
+            Decimal(str(summary.total_deposited))
+            - Decimal(str(summary.total_withdrawn))
+        ).quantize(Decimal("0.01"))
+        current = Decimal(str(summary.total_balance)).quantize(Decimal("0.01"))
+        point = _make_point(
+            _month_end(today.year, today.month),
+            invested,
+            current,
+            Decimal("0"),
+            current,
+            Decimal("0"),
+        )
+        ppf_points[-1] = point
+
     def _ensure_stock_history(
         self,
         stock_transactions: list[StockTransaction],
@@ -847,6 +878,7 @@ class InvestmentProgressService:
             client_pan,
             stock_transactions,
         )
+        self._align_current_ppf_point(progress["ppf"], client_pan)
         return progress
 
     def build_benchmarks(self, client_pan: str) -> list:

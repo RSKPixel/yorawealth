@@ -118,6 +118,78 @@ export function computeProfitLossPctSeries(points) {
     }))
 }
 
+/**
+ * One point per calendar quarter: last available month of that quarter
+ * (Mar/Jun/Sep/Dec when complete, otherwise latest month in the quarter).
+ * Profit is absolute: current_value - invested_value.
+ */
+export function computeQuarterlyProfitSeries(points) {
+  const byQuarter = new Map()
+
+  for (const point of points) {
+    const invested = Number(point.invested_value) || 0
+    if (invested <= 0) {
+      continue
+    }
+
+    const year = point.month.slice(0, 4)
+    const monthNum = Number(point.month.slice(5, 7))
+    const quarter = Math.ceil(monthNum / 3)
+    const key = `${year}-Q${quarter}`
+    const existing = byQuarter.get(key)
+    if (!existing || point.month > existing.month) {
+      byQuarter.set(key, point)
+    }
+  }
+
+  return [...byQuarter.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, point]) => {
+      const invested = Number(point.invested_value) || 0
+      const current = Number(point.current_value) || 0
+      const [year, quarterLabel] = key.split('-')
+      return {
+        key,
+        year,
+        quarter: quarterLabel,
+        label: `${quarterLabel} ${year}`,
+        month: point.month,
+        profit: Math.round((current - invested) * 100) / 100,
+        invested_value: invested,
+        current_value: current,
+      }
+    })
+}
+
+export function currentQuarterKey(now = new Date()) {
+  const year = now.getFullYear()
+  const quarter = Math.ceil((now.getMonth() + 1) / 3)
+  return `${year}-Q${quarter}`
+}
+
+/**
+ * Keep the current quarter tip aligned with live unrealized gain
+ * (same number as the overview card for the selected portfolios).
+ */
+export function alignCurrentQuarterProfit(points, liveUnrealizedGain, now = new Date()) {
+  if (!points.length || liveUnrealizedGain == null || !Number.isFinite(liveUnrealizedGain)) {
+    return points
+  }
+
+  const currentKey = currentQuarterKey(now)
+  const last = points[points.length - 1]
+  if (last.key !== currentKey) {
+    return points
+  }
+
+  const profit = Math.round(Number(liveUnrealizedGain) * 100) / 100
+  if (last.profit === profit) {
+    return points
+  }
+
+  return [...points.slice(0, -1), { ...last, profit }]
+}
+
 export function computeAssetMixPctSeries(points) {
   return points.map((point) => {
     const equity = Number(point.equity_value) || 0

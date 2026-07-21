@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+import logging
 
 from fastapi import HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -13,7 +14,6 @@ from app.repositories.portfolio_holding_repository import PortfolioHoldingReposi
 from app.schemas.mutual_fund import (
     CamsTransactionRow,
     CamsUploadResponse,
-    PortfolioHoldingRow,
     PortfolioHoldingsResponse,
     PortfolioReconciliationResponse,
 )
@@ -23,8 +23,11 @@ from app.services.portfolio_holdings_service import PortfolioHoldingsService
 from app.services.portfolio_reconciliation_service import PortfolioReconciliationService
 from app.services.portfolio_returns_service import PortfolioReturnsService
 
+logger = logging.getLogger(__name__)
+
 ALLOWED_PDF_TYPES = {
     "application/pdf": ".pdf",
+    "application/x-pdf": ".pdf",
 }
 
 
@@ -38,7 +41,11 @@ class MutualFundService:
             self.holding_repository,
         )
         self.returns_service = PortfolioReturnsService()
-        self.cams_upload_dir = Path(settings.upload_dir) / "cams"
+        upload_root = Path(settings.upload_dir)
+        if not upload_root.is_absolute():
+            # Resolve relative to backend package root (/.../backend/uploads)
+            upload_root = Path(__file__).resolve().parents[2] / upload_root
+        self.cams_upload_dir = upload_root / "cams"
         self.cams_upload_dir.mkdir(parents=True, exist_ok=True)
 
     def list_transactions(self, client_pan: str) -> list[CamsTransactionRow]:
@@ -94,8 +101,11 @@ class MutualFundService:
                 detail="Client PAN is required to store transactions.",
             )
 
-        content_type = file.content_type or ""
+        content_type = (file.content_type or "").split(";")[0].strip().lower()
+        filename_hint = (file.filename or "").lower()
         extension = ALLOWED_PDF_TYPES.get(content_type)
+        if extension is None and filename_hint.endswith(".pdf"):
+            extension = ".pdf"
         if extension is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -115,18 +125,25 @@ class MutualFundService:
                 detail="PDF must be 10 MB or smaller.",
             )
 
-        user_dir = self.cams_upload_dir / str(user_id)
-        user_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            user_dir = self.cams_upload_dir / str(user_id)
+            user_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
-        original_name = Path(file.filename or "statement.pdf").stem
-        safe_name = "".join(
-            char if char.isalnum() or char in {"-", "_"} else "-"
-            for char in original_name
-        ).strip("-_") or "statement"
-        filename = f"{timestamp}-{safe_name}{extension}"
-        destination = user_dir / filename
-        destination.write_bytes(contents)
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+            original_name = Path(file.filename or "statement.pdf").stem
+            safe_name = "".join(
+                char if char.isalnum() or char in {"-", "_"} else "-"
+                for char in original_name
+            ).strip("-_") or "statement"
+            filename = f"{timestamp}-{safe_name}{extension}"
+            destination = user_dir / filename
+            destination.write_bytes(contents)
+        except OSError as error:
+            logger.exception("Failed to store CAMS upload for user %s", user_id)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unable to store uploaded PDF on server: {error}",
+            ) from error
 
         try:
             rows = extract_cams_pdf(destination, client_pan=client_pan)
@@ -143,13 +160,23 @@ class MutualFundService:
                 detail="No transactions found in the CAMS PDF.",
             )
 
-        saved_records, created_count, updated_count = self.transaction_repository.upsert_many(
-            client_pan=client_pan,
-            source_filename=filename,
-            rows=rows,
-        )
-        self.refresh_holdings(client_pan)
-        transactions = [transaction_to_row(record) for record in saved_records]
+        try:
+            _, created_count, updated_count = self.transaction_repository.upsert_many(
+                client_pan=client_pan,
+                source_filename=filename,
+                rows=rows,
+            )
+            self.refresh_holdings(client_pan)
+        except Exception as error:
+            logger.exception(
+                "Failed to persist CAMS upload for pan=%s file=%s",
+                client_pan,
+                filename,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Unable to save CAMS transactions: {error}",
+            ) from error
 
         parts = []
         if created_count:
@@ -163,8 +190,9 @@ class MutualFundService:
         parts.append("portfolio holdings refreshed")
         detail = f"CAMS statement processed. {', '.join(parts)}."
 
+        # Frontend reloads transactions after upload; skip serializing the full set.
         return CamsUploadResponse(
             filename=filename,
             detail=detail,
-            transactions=transactions,
+            transactions=[],
         )

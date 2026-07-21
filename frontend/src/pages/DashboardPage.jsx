@@ -49,7 +49,11 @@ function DashboardPage() {
     layoutKey: isProgressLoading,
   })
   const chartPlotHeight = computeChartPlotHeight(chartMinHeight)
-  const overviewCharts = useOverviewCharts(investmentProgress, benchmarkSeries)
+  const overviewCharts = useOverviewCharts(investmentProgress, benchmarkSeries, {
+    mf: mfSummary.total_unrealized_gain,
+    stocks: stockSummary.total_unrealized_gain,
+    ppf: ppfSummary?.total_unrealized_gain ?? 0,
+  })
 
   const loadOverviewData = useCallback(async () => {
     setIsLoading(true)
@@ -294,6 +298,7 @@ function DashboardPage() {
                       benchmarkLabel={overviewCharts.benchmarkLabel}
                       drawdownPoints={overviewCharts.drawdownPoints}
                       profitLossPctPoints={overviewCharts.profitLossPctPoints}
+                      quarterlyProfitPoints={overviewCharts.quarterlyProfitPoints}
                       holdingPctPoints={overviewCharts.holdingPctPoints}
                       plotHeight={chartPlotHeight}
                     />

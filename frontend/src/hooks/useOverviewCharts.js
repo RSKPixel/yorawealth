@@ -8,18 +8,25 @@ import {
   computeBenchmarkSeries,
   computeDrawdownSeries,
   computeProfitLossPctSeries,
+  computeQuarterlyProfitSeries,
+  alignCurrentQuarterProfit,
   filterPointsByRange,
   mergePortfolioSeries,
 } from '../utils/investmentProgressChart'
 
 export const CHART_TABS = [
   { id: 'progress', label: 'Investment progress' },
+  { id: 'quarterly', label: 'Q-Gains' },
   { id: 'drawdown', label: 'Drawdown' },
   { id: 'pl_pct', label: 'Profit & Loss %' },
   { id: 'holding_pct', label: 'Holding %' },
 ]
 
-export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
+export function useOverviewCharts(
+  seriesByPortfolio,
+  benchmarks = [],
+  unrealizedByPortfolio = {},
+) {
   const optionsWithData = useMemo(
     () =>
       PORTFOLIO_OPTIONS.filter(
@@ -130,6 +137,24 @@ export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
     [filteredPoints],
   )
 
+  const liveUnrealizedGain = useMemo(
+    () =>
+      selectedIds.reduce(
+        (sum, id) => sum + (Number(unrealizedByPortfolio?.[id]) || 0),
+        0,
+      ),
+    [selectedIds, unrealizedByPortfolio],
+  )
+
+  const quarterlyProfitPoints = useMemo(
+    () =>
+      alignCurrentQuarterProfit(
+        computeQuarterlyProfitSeries(filteredPoints),
+        liveUnrealizedGain,
+      ),
+    [filteredPoints, liveUnrealizedGain],
+  )
+
   const holdingPctPoints = useMemo(
     () => computeAssetMixPctSeries(filteredPoints),
     [filteredPoints],
@@ -165,6 +190,7 @@ export function useOverviewCharts(seriesByPortfolio, benchmarks = []) {
     progressChartPoints,
     drawdownPoints,
     profitLossPctPoints,
+    quarterlyProfitPoints,
     holdingPctPoints,
     activeTabLabel,
   }

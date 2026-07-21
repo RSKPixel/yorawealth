@@ -2264,6 +2264,27 @@ body {
     @apply bg-amber-300;
   }
 
+  .mf-quarterly-progress-chart-line {
+    @apply stroke-teal-300;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  .mf-quarterly-progress-chart-point {
+    @apply fill-teal-300 stroke-teal-950;
+    stroke-width: 1;
+  }
+
+  .mf-quarterly-progress-chart-legend-swatch {
+    @apply bg-teal-300;
+  }
+
+  .mf-quarterly-progress-chart-zero-line {
+    stroke: rgb(148 163 184 / 0.45);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
   .mf-asset-mix-chart-line-equity {
     @apply stroke-violet-300;
     stroke: rgb(196 181 253);

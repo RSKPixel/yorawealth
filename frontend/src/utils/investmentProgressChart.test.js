@@ -7,6 +7,8 @@ import {
   computeDrawdownSeries,
   annotateDrawdownMaSignals,
   computeProfitLossPctSeries,
+  computeQuarterlyProfitSeries,
+  alignCurrentQuarterProfit,
   attachBenchmarkValues,
   buildNiftyCloseLookup,
   filterPointsByRange,
@@ -265,6 +267,70 @@ describe('computeDrawdownSeries', () => {
     assert.equal(result[3].drawdown_ma, -2)
     assert.equal(result[3].drawdown_ma_signal, true)
     assert.equal(result[4].drawdown_ma_signal, false)
+  })
+})
+
+describe('computeQuarterlyProfitSeries', () => {
+  it('uses quarter-end months when available', () => {
+    const points = [
+      { month: '2024-01', invested_value: 1000, current_value: 1050 },
+      { month: '2024-03', invested_value: 1000, current_value: 1100 },
+      { month: '2024-04', invested_value: 1200, current_value: 1250 },
+      { month: '2024-06', invested_value: 1200, current_value: 1400 },
+    ]
+
+    const result = computeQuarterlyProfitSeries(points)
+
+    assert.equal(result.length, 2)
+    assert.equal(result[0].key, '2024-Q1')
+    assert.equal(result[0].month, '2024-03')
+    assert.equal(result[0].label, 'Q1 2024')
+    assert.equal(result[0].profit, 100)
+    assert.equal(result[1].key, '2024-Q2')
+    assert.equal(result[1].month, '2024-06')
+    assert.equal(result[1].profit, 200)
+  })
+
+  it('uses latest month of incomplete quarter', () => {
+    const points = [
+      { month: '2025-07', invested_value: 1000, current_value: 1000 },
+      { month: '2025-08', invested_value: 1000, current_value: 1180 },
+    ]
+
+    const result = computeQuarterlyProfitSeries(points)
+
+    assert.equal(result.length, 1)
+    assert.equal(result[0].key, '2025-Q3')
+    assert.equal(result[0].month, '2025-08')
+    assert.equal(result[0].profit, 180)
+  })
+
+  it('skips months with no invested capital', () => {
+    const points = [
+      { month: '2024-03', invested_value: 0, current_value: 0 },
+      { month: '2024-06', invested_value: 1000, current_value: 1100 },
+    ]
+
+    const result = computeQuarterlyProfitSeries(points)
+
+    assert.equal(result.length, 1)
+    assert.equal(result[0].key, '2024-Q2')
+  })
+
+  it('aligns current quarter tip to live unrealized gain', () => {
+    const series = computeQuarterlyProfitSeries([
+      { month: '2026-04', invested_value: 1000, current_value: 1100 },
+      { month: '2026-07', invested_value: 1000, current_value: 1200 },
+    ])
+    const aligned = alignCurrentQuarterProfit(
+      series,
+      7040000,
+      new Date('2026-07-21T00:00:00'),
+    )
+
+    assert.equal(aligned.at(-1).key, '2026-Q3')
+    assert.equal(aligned.at(-1).profit, 7040000)
+    assert.equal(aligned[0].profit, 100)
   })
 })
 
