@@ -35,3 +35,17 @@ class UserSettingsRepository:
         self.db.commit()
         self.db.refresh(record)
         return record
+
+    def get_cams_pdf_password(self, user_id: int) -> Optional[str]:
+        record = self.find_by_user_id(user_id)
+        if not record or not record.cams_pdf_password:
+            return None
+        password = record.cams_pdf_password.strip()
+        return password or None
+
+    def update_cams_pdf_password(self, user_id: int, password: str) -> UserSettings:
+        record = self.get_or_create(user_id)
+        record.cams_pdf_password = password
+        self.db.commit()
+        self.db.refresh(record)
+        return record

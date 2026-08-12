@@ -14,6 +14,7 @@ from app.repositories.mutual_fund_transaction_repository import (
     MutualFundTransactionRepository,
 )
 from app.repositories.portfolio_holding_repository import PortfolioHoldingRepository
+from app.repositories.user_settings_repository import UserSettingsRepository
 from app.schemas.mutual_fund import (
     PortfolioReconciliationResponse,
     ReconciliationRow,
@@ -35,6 +36,7 @@ class PortfolioReconciliationService:
         self.cams_upload_dir = cams_upload_dir
         self.holding_repository = PortfolioHoldingRepository(db)
         self.transaction_repository = MutualFundTransactionRepository(db)
+        self.user_settings_repository = UserSettingsRepository(db)
 
     def reconcile(
         self,
@@ -167,11 +169,13 @@ class PortfolioReconciliationService:
                 latest_by_statement[statement_key] = pdf_path
 
         merged: dict[tuple[str, str], dict] = {}
+        cams_password = self.user_settings_repository.get_cams_pdf_password(user_id)
 
         for pdf_path in latest_by_statement.values():
             try:
                 closings = extract_cams_closing_balances(
                     pdf_path,
+                    password=cams_password,
                     client_pan=client_pan,
                 )
             except Exception:

@@ -11,6 +11,7 @@ from app.repositories.mutual_fund_transaction_repository import (
     MutualFundTransactionRepository,
 )
 from app.repositories.portfolio_holding_repository import PortfolioHoldingRepository
+from app.repositories.user_settings_repository import UserSettingsRepository
 from app.schemas.mutual_fund import (
     CamsTransactionRow,
     CamsUploadResponse,
@@ -36,6 +37,7 @@ class MutualFundService:
         self.db = db
         self.transaction_repository = MutualFundTransactionRepository(db)
         self.holding_repository = PortfolioHoldingRepository(db)
+        self.user_settings_repository = UserSettingsRepository(db)
         self.holdings_service = PortfolioHoldingsService(
             self.transaction_repository,
             self.holding_repository,
@@ -146,7 +148,12 @@ class MutualFundService:
             ) from error
 
         try:
-            rows = extract_cams_pdf(destination, client_pan=client_pan)
+            cams_password = self.user_settings_repository.get_cams_pdf_password(user_id)
+            rows = extract_cams_pdf(
+                destination,
+                password=cams_password,
+                client_pan=client_pan,
+            )
         except Exception as error:
             destination.unlink(missing_ok=True)
             raise HTTPException(

@@ -6,7 +6,9 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.user_settings import (
     GeneralSettingsResponse,
+    PasswordSettingsResponse,
     UpdateGeneralSettingsRequest,
+    UpdatePasswordSettingsRequest,
 )
 from app.services.user_settings_service import UserSettingsService
 
@@ -30,3 +32,22 @@ def update_general_settings(
 ) -> GeneralSettingsResponse:
     service = UserSettingsService(db)
     return service.update_general_settings(current_user.id, payload)
+
+
+@router.get("/password", response_model=PasswordSettingsResponse)
+def get_password_settings(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PasswordSettingsResponse:
+    service = UserSettingsService(db)
+    return service.get_password_settings(current_user.id)
+
+
+@router.patch("/password", response_model=PasswordSettingsResponse)
+def update_password_settings(
+    payload: UpdatePasswordSettingsRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> PasswordSettingsResponse:
+    service = UserSettingsService(db)
+    return service.update_password_settings(current_user.id, payload)

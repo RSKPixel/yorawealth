@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, ForeignKey, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -18,6 +18,10 @@ class UserSettings(Base):
     )
     bank_statement_normalization_prompt: Mapped[Optional[str]] = mapped_column(
         Text,
+        nullable=True,
+    )
+    cams_pdf_password: Mapped[Optional[str]] = mapped_column(
+        String(64),
         nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(

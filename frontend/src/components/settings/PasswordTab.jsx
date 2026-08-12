@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { changePassword } from '../../api/profile'
+import { fetchPasswordSettings, updatePasswordSettings } from '../../api/userSettings'
 import { useToast } from '../../context/ToastContext'
 import { getApiErrorMessage } from '../../utils/apiErrors'
 import { validatePasswordForm } from '../../utils/formValidation'
@@ -35,6 +36,37 @@ function PasswordTab() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [camsPassword, setCamsPassword] = useState('')
+  const [showCamsPassword, setShowCamsPassword] = useState(false)
+  const [isLoadingCamsPassword, setIsLoadingCamsPassword] = useState(true)
+  const [isSavingCamsPassword, setIsSavingCamsPassword] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadCamsPassword = async () => {
+      try {
+        const settings = await fetchPasswordSettings()
+        if (!cancelled) {
+          setCamsPassword(settings.cams_pdf_password || '')
+        }
+      } catch (error) {
+        if (!cancelled) {
+          showToast(getApiErrorMessage(error, 'Unable to load CAMS password.'))
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingCamsPassword(false)
+        }
+      }
+    }
+
+    loadCamsPassword()
+
+    return () => {
+      cancelled = true
+    }
+  }, [showToast])
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -70,8 +102,25 @@ function PasswordTab() {
     }
   }
 
+  const handleSaveCamsPassword = async () => {
+    setIsSavingCamsPassword(true)
+
+    try {
+      const settings = await updatePasswordSettings({
+        cams_pdf_password: camsPassword.trim(),
+      })
+      setCamsPassword(settings.cams_pdf_password || '')
+      showToast('CAMS PDF password saved.', { type: 'success' })
+    } catch (error) {
+      showToast(getApiErrorMessage(error, 'Unable to save CAMS PDF password.'))
+    } finally {
+      setIsSavingCamsPassword(false)
+    }
+  }
+
   return (
-    <FormCard onSubmit={handleSubmit} className="w-full border-0 bg-transparent shadow-none">
+    <div className="settings-password-stack">
+      <FormCard onSubmit={handleSubmit} className="w-full border-0 bg-transparent shadow-none">
       <FormBody>
         <FormField label="Current password" htmlFor="currentPassword">
           <div className="relative">
@@ -143,6 +192,50 @@ function PasswordTab() {
         </FormButton>
       </FormFooter>
     </FormCard>
+
+      <FormCard className="w-full border-0 bg-transparent shadow-none">
+        <FormBody>
+          <div className="settings-option-copy">
+            <p className="settings-option-label">CAMS PDF password</p>
+            <p className="settings-option-hint">
+              Password used to unlock CAMS mutual fund statement PDFs on import. If left
+              empty, lowercase client PAN is tried automatically.
+            </p>
+          </div>
+
+          <FormField label="CAMS password" htmlFor="camsPassword">
+            <div className="relative">
+              <FormInput
+                id="camsPassword"
+                name="camsPassword"
+                type={showCamsPassword ? 'text' : 'password'}
+                value={camsPassword}
+                onChange={(event) => setCamsPassword(event.target.value)}
+                placeholder="Enter CAMS PDF password"
+                className="pr-10"
+                disabled={isLoadingCamsPassword || isSavingCamsPassword}
+                maxLength={64}
+              />
+              <PasswordToggleButton
+                visible={showCamsPassword}
+                onToggle={() => setShowCamsPassword((prev) => !prev)}
+                label={showCamsPassword ? 'Hide CAMS password' : 'Show CAMS password'}
+              />
+            </div>
+          </FormField>
+        </FormBody>
+
+        <FormFooter>
+          <FormButton
+            type="button"
+            onClick={handleSaveCamsPassword}
+            disabled={isLoadingCamsPassword || isSavingCamsPassword}
+          >
+            {isSavingCamsPassword ? 'Saving…' : 'Save CAMS password'}
+          </FormButton>
+        </FormFooter>
+      </FormCard>
+    </div>
   )
 }
 
