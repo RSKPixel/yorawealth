@@ -10,6 +10,7 @@ from app.services.amfi_lookup import (
     build_amfi_index,
     clear_amfi_index_cache,
     fetch_amfi_lines,
+    parse_amfi_nav,
 )
 
 
@@ -51,9 +52,8 @@ def _info_to_eod_row(isin: str, info: AmfiFundInfo) -> dict:
     except ValueError:
         nav_date = date.today()
 
-    nav_value = info.nav.replace(",", "") if info.nav else "0"
-    if nav_value in {"", "N.A.", "NA"}:
-        nav_value = "0"
+    parsed_nav = parse_amfi_nav(info.nav)
+    nav_value = float(parsed_nav) if parsed_nav is not None else 0.0
 
     return {
         "scheme_code": info.scheme_code,
@@ -61,7 +61,7 @@ def _info_to_eod_row(isin: str, info: AmfiFundInfo) -> dict:
         "scheme_name": info.fund_name,
         "amc_name": info.amc,
         "isin": isin.upper(),
-        "nav": float(nav_value),
+        "nav": nav_value,
         "asset_class": info.asset_class,
         "fund_type": info.fund_type,
     }

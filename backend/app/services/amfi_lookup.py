@@ -3,10 +3,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from typing import Optional
 
 import requests
+
+_INVALID_NAV_TOKENS = {"", "-", "N.A.", "NA", "N/A"}
 
 AMFI_NAV_URL = "https://portal.amfiindia.com/spages/NAVAll.txt"
 
@@ -40,6 +43,21 @@ def parse_amfi_nav_date(value: str) -> str:
         return datetime.strptime(stripped, "%d-%b-%Y").date().isoformat()
     except ValueError:
         return stripped
+
+
+def parse_amfi_nav(value: Optional[str]) -> Optional[Decimal]:
+    """Parse an AMFI NAV cell; returns None for N.A. / blank / non-numeric values."""
+    if value is None:
+        return None
+
+    text = str(value).strip().replace(",", "")
+    if text.upper() in _INVALID_NAV_TOKENS or text.lower() == "net asset value":
+        return None
+
+    try:
+        return Decimal(text)
+    except (InvalidOperation, ValueError):
+        return None
 
 
 def fetch_amfi_lines() -> list[str]:

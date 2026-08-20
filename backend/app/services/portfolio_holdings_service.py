@@ -9,7 +9,12 @@ from app.repositories.mutual_fund_transaction_repository import (
     MutualFundTransactionRepository,
 )
 from app.repositories.portfolio_holding_repository import PortfolioHoldingRepository
-from app.services.amfi_lookup import AmfiFundInfo, fetch_amfi_index, lookup_isin
+from app.services.amfi_lookup import (
+    AmfiFundInfo,
+    fetch_amfi_index,
+    lookup_isin,
+    parse_amfi_nav,
+)
 
 
 @dataclass
@@ -28,9 +33,11 @@ def _resolve_current_nav(
     fallback_nav: Decimal,
 ) -> tuple[Decimal, Optional[str]]:
     info = lookup_isin(isin, amfi_index)
-    if info and info.nav:
-        nav_date = info.nav_date or None
-        return _decimal(info.nav), nav_date
+    if info:
+        nav = parse_amfi_nav(info.nav)
+        if nav is not None:
+            nav_date = info.nav_date or None
+            return nav, nav_date
     return fallback_nav, None
 
 
