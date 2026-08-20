@@ -26,6 +26,7 @@ from app.repositories.stock_transaction_repository import StockTransactionReposi
 from app.services.amfi_historical_sync_service import AmfiHistoricalSyncService
 from app.services.amfi_lookup import (
     AmfiFundInfo,
+    classify_scheme,
     fetch_amfi_index,
     lookup_isin,
     parse_amfi_nav,
@@ -64,6 +65,8 @@ class MfHoldingState:
     lots: list[FifoLot] = field(default_factory=list)
     latest_nav: Decimal = Decimal("0")
     scheme_code: Optional[str] = None
+    fund_name: str = ""
+    asset_class: Optional[str] = None
 
 
 @dataclass
@@ -265,6 +268,10 @@ def _apply_mf_transaction(
     isin_scheme_map: dict[str, str],
 ) -> None:
     state.latest_nav = _decimal(transaction.nav)
+    if transaction.fund_name:
+        state.fund_name = transaction.fund_name
+    if transaction.assetclass:
+        state.asset_class = transaction.assetclass
     if not state.scheme_code:
         state.scheme_code = isin_scheme_map.get(transaction.isin.upper().strip())
 
@@ -355,10 +362,24 @@ def _normalize_asset_class(value: Optional[str]) -> str:
     return "Equity"
 
 
-def _resolve_mf_asset_class(isin: str, amfi_index: dict[str, AmfiFundInfo]) -> str:
+def _resolve_mf_asset_class(
+    isin: str,
+    amfi_index: dict[str, AmfiFundInfo],
+    fund_name: Optional[str] = None,
+    known_asset_class: Optional[str] = None,
+) -> str:
     info = lookup_isin(isin, amfi_index)
     if info and info.asset_class:
         return _normalize_asset_class(info.asset_class)
+
+    if known_asset_class:
+        return _normalize_asset_class(known_asset_class)
+
+    name = (fund_name or (info.fund_name if info else "") or "").strip()
+    if name:
+        asset_class, _ = classify_scheme("", name)
+        return _normalize_asset_class(asset_class)
+
     return "Equity"
 
 
@@ -536,7 +557,12 @@ def compute_investment_progress(
             mf_current += current
             _add_asset_class_value(
                 mf_asset_totals,
-                _resolve_mf_asset_class(isin, amfi_index),
+                _resolve_mf_asset_class(
+                    isin,
+                    amfi_index,
+                    fund_name=state.fund_name,
+                    known_asset_class=state.asset_class,
+                ),
                 current,
             )
 

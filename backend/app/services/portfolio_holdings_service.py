@@ -11,6 +11,7 @@ from app.repositories.mutual_fund_transaction_repository import (
 from app.repositories.portfolio_holding_repository import PortfolioHoldingRepository
 from app.services.amfi_lookup import (
     AmfiFundInfo,
+    classify_scheme,
     fetch_amfi_index,
     lookup_isin,
     parse_amfi_nav,
@@ -49,7 +50,10 @@ def _resolve_fund_metadata(
 ) -> tuple[str, str, str, str]:
     info = lookup_isin(isin, amfi_index)
     if info is None:
-        return fund_name, amc, "", ""
+        asset_class = ""
+        if fund_name:
+            asset_class, _ = classify_scheme("", fund_name)
+        return fund_name, amc, asset_class, ""
 
     return (
         info.fund_name or fund_name,
