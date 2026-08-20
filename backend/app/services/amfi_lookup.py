@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from typing import Optional
 
@@ -40,6 +41,19 @@ def parse_amfi_nav_date(value: str) -> str:
         return datetime.strptime(stripped, "%d-%b-%Y").date().isoformat()
     except ValueError:
         return stripped
+
+
+def parse_amfi_nav(value: Optional[str]) -> Optional[Decimal]:
+    """Parse AMFI NAV text (may include commas or N.A.)."""
+    if value is None:
+        return None
+    text = str(value).strip().replace(",", "").replace(" ", "")
+    if not text or text.upper() in {"N.A.", "NA", "NONE", "-", "NULL"}:
+        return None
+    try:
+        return Decimal(text)
+    except InvalidOperation:
+        return None
 
 
 def fetch_amfi_lines() -> list[str]:
@@ -81,21 +95,11 @@ def build_amfi_index(lines: list[str]) -> dict[str, AmfiFundInfo]:
             continue
 
         row = stripped.split(";")
-        if len(row) < 5:
+        parsed = _parse_amfi_data_row(row)
+        if parsed is None:
             continue
 
-        scheme_code = row[0].strip()
-        if not SCHEME_CODE_PATTERN.match(scheme_code):
-            continue
-
-        scheme_name = row[3].strip()
-        nav = row[4].strip()
-        if not scheme_name or scheme_name.lower() == "scheme name":
-            continue
-        if not nav or nav.lower() == "net asset value":
-            continue
-
-        nav_date = parse_amfi_nav_date(row[5]) if len(row) > 5 else ""
+        scheme_code, scheme_name, nav, nav_date = parsed
         asset_class, fund_type = classify_scheme(current_category, scheme_name)
         cleaned_name = clean_fund_name(scheme_name)
 
@@ -119,6 +123,53 @@ def build_amfi_index(lines: list[str]) -> dict[str, AmfiFundInfo]:
                         index[isin_upper] = info
 
     return index
+
+
+def _parse_amfi_data_row(row: list[str]) -> tuple[str, str, str, str] | None:
+    """Parse one NAVAll data row.
+
+    Current AMFI format (8 fields):
+      Scheme Code;ISIN1;ISIN2;Scheme Name;Plan;Option;Net Asset Value;Date
+    Legacy format (6 fields):
+      Scheme Code;ISIN1;ISIN2;Scheme Name;Net Asset Value;Date
+    """
+    if len(row) < 5:
+        return None
+
+    scheme_code = row[0].strip()
+    if not SCHEME_CODE_PATTERN.match(scheme_code):
+        return None
+
+    scheme_name = row[3].strip()
+    if not scheme_name or scheme_name.lower() == "scheme name":
+        return None
+
+    # Prefer the trailing numeric NAV column so Plan/Option labels are not treated as NAV.
+    nav = ""
+    nav_date = ""
+    if len(row) >= 8:
+        candidate_nav = row[6].strip()
+        candidate_date = row[7].strip() if len(row) > 7 else ""
+        if parse_amfi_nav(candidate_nav) is not None:
+            nav = candidate_nav
+            nav_date = parse_amfi_nav_date(candidate_date)
+        else:
+            candidate_nav = row[4].strip()
+            candidate_date = row[5].strip() if len(row) > 5 else ""
+            if parse_amfi_nav(candidate_nav) is not None:
+                nav = candidate_nav
+                nav_date = parse_amfi_nav_date(candidate_date)
+    else:
+        candidate_nav = row[4].strip()
+        candidate_date = row[5].strip() if len(row) > 5 else ""
+        if parse_amfi_nav(candidate_nav) is not None:
+            nav = candidate_nav
+            nav_date = parse_amfi_nav_date(candidate_date)
+
+    if not nav:
+        return None
+
+    return scheme_code, scheme_name, nav, nav_date
 
 
 def classify_scheme(scheme_category: str, fund_name: str) -> tuple[str, str]:

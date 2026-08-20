@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Optional
 
 from app.models.nse_eod import NseEod
@@ -22,7 +22,12 @@ class FifoLot:
 
 
 def _decimal(value: Decimal | float | int | str) -> Decimal:
-    return Decimal(str(value))
+    if isinstance(value, Decimal):
+        return value
+    text = str(value).strip().replace(",", "")
+    if not text or text.upper() in {"N.A.", "NA", "NONE", "-", "NULL"}:
+        raise InvalidOperation(f"Invalid decimal value: {value!r}")
+    return Decimal(text)
 
 
 def _average_cost(lots: list[FifoLot]) -> Decimal:

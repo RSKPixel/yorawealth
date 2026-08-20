@@ -24,7 +24,12 @@ from app.repositories.stock_historical_repository import StockHistoricalReposito
 from app.repositories.stock_repository import StockRepository
 from app.repositories.stock_transaction_repository import StockTransactionRepository
 from app.services.amfi_historical_sync_service import AmfiHistoricalSyncService
-from app.services.amfi_lookup import AmfiFundInfo, fetch_amfi_index, lookup_isin
+from app.services.amfi_lookup import (
+    AmfiFundInfo,
+    fetch_amfi_index,
+    lookup_isin,
+    parse_amfi_nav,
+)
 from app.services.nse_eod_historical_sync_service import NseEodHistoricalSyncService
 from app.services.nse_index_historical_client import NIFTY_50_SYMBOL
 from app.services.portfolio_holdings_service import PortfolioHoldingsService
@@ -207,7 +212,9 @@ def _resolve_mf_nav(
     if use_live_nav:
         info = lookup_isin(isin, amfi_index)
         if info and info.nav:
-            return _decimal(info.nav)
+            parsed = parse_amfi_nav(info.nav)
+            if parsed is not None:
+                return parsed
 
     if scheme_code:
         nav = price_lookup.mf_nav_on_or_before(scheme_code, valuation_date)

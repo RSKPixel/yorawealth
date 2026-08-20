@@ -9,7 +9,12 @@ from app.repositories.mutual_fund_transaction_repository import (
     MutualFundTransactionRepository,
 )
 from app.repositories.portfolio_holding_repository import PortfolioHoldingRepository
-from app.services.amfi_lookup import AmfiFundInfo, fetch_amfi_index, lookup_isin
+from app.services.amfi_lookup import (
+    AmfiFundInfo,
+    fetch_amfi_index,
+    lookup_isin,
+    parse_amfi_nav,
+)
 
 
 @dataclass
@@ -19,7 +24,10 @@ class FifoLot:
 
 
 def _decimal(value: Decimal | float | int | str) -> Decimal:
-    return Decimal(str(value))
+    if isinstance(value, Decimal):
+        return value
+    text = str(value).strip().replace(",", "")
+    return Decimal(text)
 
 
 def _resolve_current_nav(
@@ -29,8 +37,9 @@ def _resolve_current_nav(
 ) -> tuple[Decimal, Optional[str]]:
     info = lookup_isin(isin, amfi_index)
     if info and info.nav:
-        nav_date = info.nav_date or None
-        return _decimal(info.nav), nav_date
+        parsed = parse_amfi_nav(info.nav)
+        if parsed is not None:
+            return parsed, info.nav_date or None
     return fallback_nav, None
 
 
