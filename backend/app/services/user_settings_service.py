@@ -1,10 +1,14 @@
+from urllib.parse import quote_plus
+
 from sqlalchemy.orm import Session
 
 from app.constants.bank_statement_prompt import (
     DEFAULT_BANK_STATEMENT_NORMALIZATION_PROMPT,
 )
+from app.core.config import settings
 from app.repositories.user_settings_repository import UserSettingsRepository
 from app.schemas.user_settings import (
+    DatabaseSettingsResponse,
     GeneralSettingsResponse,
     PasswordSettingsResponse,
     UpdateGeneralSettingsRequest,
@@ -56,4 +60,18 @@ class UserSettingsService:
         )
         return PasswordSettingsResponse(
             cams_pdf_password=record.cams_pdf_password or "",
+        )
+
+    def get_database_settings(self) -> DatabaseSettingsResponse:
+        user = quote_plus(settings.db_user)
+        connection_string = (
+            f"mysql+pymysql://{user}:***"
+            f"@{settings.db_host}:{settings.db_port}/{settings.db_name}"
+        )
+        return DatabaseSettingsResponse(
+            connection_string=connection_string,
+            host=settings.db_host,
+            port=settings.db_port,
+            user=settings.db_user,
+            database=settings.db_name,
         )

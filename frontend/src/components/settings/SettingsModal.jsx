@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Modal from '../common/Modal'
 import BootstrapIcon from '../icons/BootstrapIcon'
 import BanksTab from './BanksTab'
+import DatabaseTab from './DatabaseTab'
 import GeneralTab from './GeneralTab'
 import LogTab from './LogTab'
 import PasswordTab from './PasswordTab'
@@ -54,6 +55,7 @@ function SettingsModal({ onClose }) {
             {activeTab === 'profile' && <ProfileTab />}
             {activeTab === 'password' && <PasswordTab />}
             {activeTab === 'banks' && <BanksTab />}
+            {activeTab === 'database' && <DatabaseTab />}
             {activeTab === 'log' && <LogTab />}
           </div>
         </div>

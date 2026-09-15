@@ -3,6 +3,7 @@ export const SETTINGS_TAB_DESCRIPTIONS = {
   profile: 'Update your personal details and profile photo.',
   password: 'Change your account password and CAMS PDF import password.',
   banks: 'Manage your bank accounts.',
+  database: 'View the active database connection used by the API.',
   log: 'Review market data sync activity and status.',
 }
 
@@ -11,5 +12,6 @@ export const SETTINGS_TABS = [
   { id: 'profile', label: 'Profile', icon: 'bi-person-circle' },
   { id: 'password', label: 'Password', icon: 'bi-shield-lock' },
   { id: 'banks', label: 'Banks', icon: 'bi-bank' },
+  { id: 'database', label: 'Database', icon: 'bi-database' },
   { id: 'log', label: 'Log', icon: 'bi-journal-text' },
 ]

@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.user import User
 from app.schemas.user_settings import (
+    DatabaseSettingsResponse,
     GeneralSettingsResponse,
     PasswordSettingsResponse,
     UpdateGeneralSettingsRequest,
@@ -51,3 +52,11 @@ def update_password_settings(
 ) -> PasswordSettingsResponse:
     service = UserSettingsService(db)
     return service.update_password_settings(current_user.id, payload)
+
+
+@router.get("/database", response_model=DatabaseSettingsResponse)
+def get_database_settings(
+    _current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DatabaseSettingsResponse:
+    return UserSettingsService(db).get_database_settings()

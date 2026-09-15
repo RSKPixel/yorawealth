@@ -19,3 +19,8 @@ export async function updatePasswordSettings(payload) {
   const response = await api.patch('/settings/password', payload)
   return response.data
 }
+
+export async function fetchDatabaseSettings() {
+  const response = await api.get('/settings/database')
+  return response.data
+}

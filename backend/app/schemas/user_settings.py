@@ -17,3 +17,11 @@ class PasswordSettingsResponse(BaseModel):
 
 class UpdatePasswordSettingsRequest(BaseModel):
     cams_pdf_password: str = Field(default="", max_length=64)
+
+
+class DatabaseSettingsResponse(BaseModel):
+    connection_string: str
+    host: str
+    port: int
+    user: str
+    database: str
