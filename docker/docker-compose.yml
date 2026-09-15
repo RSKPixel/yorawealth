@@ -1,0 +1,25 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    env_file:
+      - .env
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/app/uploads
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "${YORAWEALTH_PORT:-8000}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  uploads_data:
