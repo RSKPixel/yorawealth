@@ -1,8 +1,11 @@
+name: yorawealth
+
 services:
   backend:
     build:
       context: ..
       dockerfile: docker/Dockerfile.backend
+    container_name: yorawealth-backend
     env_file:
       - .env
     restart: unless-stopped
@@ -15,6 +18,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.frontend
+    container_name: yorawealth-frontend
     ports:
       - "${YORAWEALTH_PORT:-8000}:80"
     depends_on:
